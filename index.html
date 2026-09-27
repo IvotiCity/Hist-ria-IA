@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d0b14">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Renascido em Valdrath</title>
+<style>
+  :root{
+    --bg:#0d0b14; --bg2:#151122; --card:#1d1830; --card2:#262041;
+    --line:#332a4d; --txt:#eae5f7; --dim:#9d93b8;
+    --accent:#a78bfa; --accent2:#f0abfc; --ouro:#f5c76e;
+    --hp:#ff6b81; --xp:#6fe0a8;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;overscroll-behavior:none}
+  body{
+    background:var(--bg); color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    font-size:16px; line-height:1.65; -webkit-font-smoothing:antialiased;
+    display:flex; flex-direction:column; height:100vh; height:100dvh; overflow:hidden;
+  }
+
+  /* topo */
+  #topo{flex:none; padding:calc(9px + env(safe-area-inset-top)) 13px 8px;
+    background:linear-gradient(180deg,#1c1730,#151122); border-bottom:1px solid var(--line)}
+  .linha1{display:flex; align-items:center; gap:9px}
+  .linha1 .nome{flex:1; min-width:0}
+  .linha1 h1{margin:0; font-size:14.5px; font-weight:650; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .linha1 h1 b{color:var(--accent)}
+  .linha1 .loc{font-size:11.5px; color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .icb{background:none; border:1px solid var(--line); color:var(--dim);
+    width:36px; height:36px; border-radius:10px; font-size:16px; cursor:pointer; flex:none}
+  .icb:active{background:var(--card2)}
+  .barras{display:flex; gap:8px; margin-top:7px; align-items:center}
+  .mini{flex:1; height:8px; background:#120f1d; border-radius:99px; overflow:hidden; position:relative}
+  .mini i{display:block; height:100%; border-radius:99px; transition:width .45s}
+  .mini.hpb i{background:linear-gradient(90deg,#c0394b,var(--hp))}
+  .mini.xpb i{background:linear-gradient(90deg,#2f9e6a,var(--xp))}
+  .vnum{font-size:10.5px; color:var(--dim); font-variant-numeric:tabular-nums; white-space:nowrap}
+  .nv{font-size:11px; color:var(--ouro); font-weight:700; white-space:nowrap}
+
+  /* log */
+  #log{flex:1; overflow-y:auto; padding:18px 16px 6px; display:flex; flex-direction:column; gap:15px;
+    max-width:780px; width:100%; margin:0 auto; -webkit-overflow-scrolling:touch}
+  .nar{font-size:16.5px; line-height:1.78; animation:in .4s ease both}
+  .nar p{margin:0 0 12px} .nar p:last-child{margin:0}
+  .acao{align-self:flex-end; max-width:86%; background:var(--card2); border:1px solid var(--line);
+    border-left:3px solid var(--accent); border-radius:13px; padding:9px 13px; font-size:15px; animation:in .25s ease both}
+  .acao b{display:block; font-size:10.5px; color:var(--accent); letter-spacing:.7px; text-transform:uppercase}
+  .sis{align-self:center; text-align:center; font-size:13px; color:var(--dim);
+    border:1px dashed var(--line); border-radius:12px; padding:10px 14px; max-width:96%; line-height:1.55}
+  .sis b{color:var(--accent2)}
+  .pensando{color:var(--dim); font-style:italic}
+  .sistema{align-self:stretch; background:linear-gradient(135deg,#1a1630,#241d3d);
+    border:1px solid #453a66; border-radius:12px; padding:11px 14px; font-size:13.5px;
+    font-variant-numeric:tabular-nums; animation:in .3s ease both}
+  .sistema .h{font-size:10.5px; letter-spacing:1.5px; text-transform:uppercase; color:var(--accent2); margin-bottom:5px}
+  .sistema span{display:inline-block; margin-right:12px}
+  .sistema .g{color:var(--xp)} .sistema .r{color:var(--hp)} .sistema .o{color:var(--ouro)}
+  @keyframes in{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+
+  /* dicas */
+  #dicas{flex:none; display:flex; gap:7px; overflow-x:auto; padding:6px 16px 2px;
+    max-width:780px; width:100%; margin:0 auto; scrollbar-width:none}
+  #dicas::-webkit-scrollbar{display:none}
+  #dicas button{flex:none; background:var(--card); border:1px solid var(--line); color:var(--dim);
+    font:inherit; font-size:12.5px; padding:6px 12px; border-radius:99px; cursor:pointer; white-space:nowrap}
+  #dicas button:active{border-color:var(--accent); color:var(--txt)}
+
+  /* entrada */
+  #barra{flex:none; display:flex; gap:9px; align-items:flex-end;
+    padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+    border-top:1px solid var(--line); background:var(--bg2); max-width:780px; width:100%; margin:0 auto}
+  #entrada{flex:1; font:inherit; font-size:16px; color:var(--txt); background:#120f1d;
+    border:1px solid var(--line); border-radius:20px; padding:11px 15px; resize:none; max-height:120px; line-height:1.5}
+  #entrada:focus{outline:2px solid var(--accent); outline-offset:-1px}
+  #enviar{border:0; border-radius:50%; width:44px; height:44px; flex:none; cursor:pointer;
+    background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#1a1226; font-size:18px}
+  #enviar:disabled{opacity:.4}
+
+  /* painéis */
+  #fundo{position:fixed; inset:0; background:rgba(6,4,12,.7); z-index:50; display:none}
+  #fundo.on{display:block}
+  .painel{position:fixed; z-index:51; top:0; right:0; bottom:0; width:min(430px,90vw);
+    background:var(--bg2); border-left:1px solid var(--line);
+    transform:translateX(102%); transition:transform .28s ease; display:flex; flex-direction:column}
+  .painel.on{transform:none}
+  .painel header{flex:none; display:flex; align-items:center; gap:10px;
+    padding:calc(13px + env(safe-area-inset-top)) 15px 11px; border-bottom:1px solid var(--line)}
+  .painel header h2{margin:0; font-size:15.5px; flex:1}
+  .painel .corpo{flex:1; overflow-y:auto; padding:15px 15px calc(26px + env(safe-area-inset-bottom))}
+
+  .pcard{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:11px}
+  h4.t{font-size:11px; letter-spacing:1.4px; text-transform:uppercase; color:var(--dim); margin:18px 2px 8px; font-weight:600}
+  h4.t:first-child{margin-top:0}
+  .stat{display:flex; justify-content:space-between; font-size:14px; padding:5px 0; border-bottom:1px solid #251f3b}
+  .stat:last-child{border:0}
+  .stat b{font-weight:600; color:var(--txt)}
+  .tag{display:inline-block; background:var(--card2); border:1px solid var(--line); border-radius:8px;
+    padding:4px 9px; font-size:12.5px; margin:0 5px 5px 0}
+  .tag.o{color:var(--ouro); border-color:#5a4a28}
+  .npc{display:flex; gap:12px; align-items:center}
+  .av{width:44px;height:44px;border-radius:50%;flex:none;display:grid;place-items:center;
+    font-weight:700;color:#12101c;font-size:17px}
+  .npc h3{margin:0;font-size:15px}
+  .npc .id{font-size:11.5px;color:var(--dim);font-weight:400}
+  .bar{height:6px;background:#120f1d;border-radius:99px;overflow:hidden;margin-top:9px}
+  .bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .6s}
+  .lbl{display:flex;justify-content:space-between;font-size:11.5px;color:var(--dim);margin-top:4px}
+  .sobre{font-size:13px;color:var(--dim);margin:9px 0 0}
+  .memo{font-size:13px;color:var(--dim);border-left:2px solid var(--line);padding-left:11px;margin:7px 0}
+
+  label.f{display:block;font-size:12.5px;color:var(--dim);margin:13px 0 5px}
+  input.f,select.f{width:100%;font:inherit;font-size:15px;color:var(--txt);background:#120f1d;
+    border:1px solid var(--line);border-radius:11px;padding:11px 12px}
+  .btn{cursor:pointer;font:inherit;font-weight:600;color:#161022;border:0;border-radius:12px;
+    padding:12px 15px;width:100%;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+  .btn.g{background:transparent;color:var(--txt);border:1px solid var(--line);font-weight:500}
+  .row{display:flex;gap:9px}.row .btn{flex:1}
+  .aviso{background:#2a1f1a;border:1px solid #5a3f2a;color:#ffd7ae;font-size:12.5px;
+    border-radius:11px;padding:11px 13px;margin-top:12px;line-height:1.55}
+  .dica{font-size:12.5px;color:var(--dim);line-height:1.55;margin:9px 0 0}
+  .dica code{background:#120f1d;border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:11.5px}
+</style>
+</head>
+<body>
+
+<div id="topo">
+  <div class="linha1">
+    <div class="nome">
+      <h1 id="hNome">Renascido em <b>Valdrath</b></h1>
+      <div class="loc" id="hLoc">—</div>
+    </div>
+    <button class="icb" id="bFicha" title="Ficha">🧝</button>
+    <button class="icb" id="bMundo" title="Mundo">🗺️</button>
+    <button class="icb" id="bConf" title="Ajustes">⚙️</button>
+  </div>
+  <div class="barras">
+    <span class="nv" id="hNv">Nv 1</span>
+    <div class="mini hpb"><i id="hHp" style="width:100%"></i></div>
+    <span class="vnum" id="hHpN">30/30</span>
+    <div class="mini xpb"><i id="hXp" style="width:0%"></i></div>
+    <span class="vnum" id="hXpN">0/100</span>
+  </div>
+</div>
+
+<div id="log"></div>
+<div id="dicas"></div>
+
+<div id="barra">
+  <textarea id="entrada" rows="1" placeholder="O que você faz?"></textarea>
+  <button id="enviar">➤</button>
+</div>
+
+<div id="fundo"></div>
+
+<!-- FICHA -->
+<aside class="painel" id="pFicha">
+  <header><h2>Ficha</h2><button class="icb" data-fechar>×</button></header>
+  <div class="corpo">
+    <div class="pcard" id="fichaTopo"></div>
+    <h4 class="t">Atributos</h4>
+    <div class="pcard" id="fichaAtr"></div>
+    <h4 class="t">Habilidades</h4>
+    <div class="pcard" id="fichaHab"></div>
+    <h4 class="t">Inventário</h4>
+    <div class="pcard" id="fichaInv"></div>
+  </div>
+</aside>
+
+<!-- MUNDO -->
+<aside class="painel" id="pMundo">
+  <header><h2>Mundo</h2><button class="icb" data-fechar>×</button></header>
+  <div class="corpo">
+    <h4 class="t">Pessoas que você conheceu</h4>
+    <div id="listaNpc"></div>
+    <h4 class="t">Crônica</h4>
+    <div id="memoria"></div>
+  </div>
+</aside>
+
+<!-- AJUSTES -->
+<aside class="painel" id="pConf">
+  <header><h2>Ajustes</h2><button class="icb" data-fechar>×</button></header>
+  <div class="corpo">
+    <div class="pcard">
+      <h4 class="t">Motor de IA</h4>
+      <p class="dica" style="margin-top:0">Todas as opções são <b>gratuitas e sem cartão</b>.
+      Você precisa de uma chave (leva 2 minutos e não pede pagamento nenhum).
+      Para resposta instantânea: <b>Groq</b>. Para os textos mais longos e bem escritos:
+      <b>Google AI Studio</b>.</p>
+
+      <label class="f">Serviço</label>
+      <select class="f" id="preset">
+        <option value="gemini">⭐ Google AI Studio — grátis, melhor para cenas longas</option>
+        <option value="groq">⚡ Groq — grátis, o mais rápido (cenas menores)</option>
+        <option value="pollinations">⚠️ Pollinations — sem cadastro, mas quase sempre fora do ar</option>
+        <option value="openrouter">🆓 OpenRouter — grátis com limite, ou pago sem limite</option>
+        <option value="local">🆓 Modelo no seu PC (Ollama / LM Studio)</option>
+        <option value="custom">Personalizado</option>
+      </select>
+      <div class="dica" id="comoObter"></div>
+
+      <label class="f">Modelo</label>
+      <select class="f" id="modeloSel"></select>
+      <input class="f" id="apiModel" style="margin-top:7px" placeholder="id do modelo">
+
+      <label class="f">Endpoint</label>
+      <input class="f" id="apiUrl">
+
+      <label class="f" id="lblKey">Chave de API</label>
+      <input class="f" id="apiKey" type="password" placeholder="sk-..." autocomplete="off">
+
+      <label class="f">Tamanho da resposta</label>
+      <select class="f" id="tam">
+        <option value="2200">Curta — 3 a 5 parágrafos</option>
+        <option value="3500">Média — 4 a 7 parágrafos</option>
+        <option value="5200" selected>Longa — 5 a 10 parágrafos com diálogo</option>
+        <option value="8000">Capítulo — 8 a 14 parágrafos</option>
+      </select>
+      <div class="dica">Se ainda assim o texto vier curto, o jogo continua sozinho de onde parou,
+      até três vezes. Modelos pequenos ignoram pedido de tamanho — o <b>Google AI Studio</b> é o
+      que mais obedece.</div>
+
+      <div class="row" style="margin-top:15px">
+        <button class="btn" id="bSalvarApi">Salvar</button>
+        <button class="btn g" id="bTestar">Testar</button>
+      </div>
+      <div id="resTeste" class="dica"></div>
+      <div class="aviso"><b>Nunca</b> escreva a chave dentro do código do site: o repositório é
+      público e qualquer pessoa copiaria. Aqui ela fica só no seu navegador.</div>
+    </div>
+
+    <div class="pcard">
+      <h4 class="t">Progresso</h4>
+      <label class="f">Slot</label>
+      <select class="f" id="selSlot">
+        <option value="1">Slot 1</option><option value="2">Slot 2</option><option value="3">Slot 3</option>
+      </select>
+      <div class="row" style="margin-top:12px">
+        <button class="btn g" id="bExp">⬇ Baixar</button>
+        <button class="btn g" id="bImp">⬆ Carregar</button>
+      </div>
+      <p class="dica">O progresso fica neste aparelho. Baixe o arquivo no PC e carregue no celular
+      para continuar de onde parou.</p>
+      <button class="btn g" id="bReset" style="margin-top:12px;color:#ff9b9b">↺ Renascer do zero</button>
+    </div>
+  </div>
+</aside>
+
+<script>
+/* ==========================================================
+   CONFIG
+   ========================================================== */
+const PREFIX='valdrath';
+
+const PRESETS={
+  pollinations:{url:'https://text.pollinations.ai/openai', chave:false, modelos:[
+    ['openai','Grátis, sem cadastro — começa a jogar agora'],
+    ['mistral','Mistral — grátis, sem cadastro'],
+    ['deepseek','DeepSeek — grátis, sem cadastro']
+  ]},
+  gemini:{url:'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', chave:true, modelos:[
+    ['gemini-2.5-flash','Gemini 2.5 Flash — grátis, o melhor dos gratuitos'],
+    ['gemini-flash-latest','Gemini Flash mais recente — grátis'],
+    ['gemma-3-27b-it','Gemma 3 27B — grátis, mais leve']
+  ]},
+  groq:{url:'https://api.groq.com/openai/v1/chat/completions', chave:true, modelos:[
+    ['openai/gpt-oss-120b','GPT-OSS 120B — grátis e absurdamente rápido'],
+    ['openai/gpt-oss-20b','GPT-OSS 20B — grátis, mais leve'],
+    ['qwen/qwen3-32b','Qwen 3 32B — grátis']
+  ]},
+  openrouter:{url:'https://openrouter.ai/api/v1/chat/completions', chave:true, modelos:[
+    ['deepseek/deepseek-v4-flash:free','DeepSeek V4 Flash (free) — 50 respostas/dia de graça'],
+    ['google/gemma-4-31b:free','Gemma 4 31B (free) — grátis'],
+    ['openrouter/free','Rota gratuita automática'],
+    ['deepseek/deepseek-v4-flash','DeepSeek V4 Flash — PAGO, sem limite diário'],
+    ['anthropic/claude-sonnet-5','Claude Sonnet 5 — PAGO, melhor prosa']
+  ]},
+  local:{url:'http://localhost:11434/v1/chat/completions', chave:false, modelos:[
+    ['llama3.1','Ollama — grátis e ilimitado, mas só no PC'],
+    ['local-model','LM Studio — o modelo que estiver carregado']
+  ]},
+  custom:{url:'', chave:true, modelos:[['','digite o id do modelo']]}
+};
+const semChave = u => /pollinations|localhost|127\.0\.0\.1/.test(u||'');
+/* tokens máximos -> [mínimo, máximo] de parágrafos pedidos ao modelo */
+const PARAGRAFOS={2200:[3,5], 3500:[4,7], 5200:[5,10], 8000:[8,14]};
+
+/* ==========================================================
+   REGRAS DO NARRADOR
+   ========================================================== */
+const REGRAS =
+`Você é o Mestre de um RPG de fantasia sombria em português do Brasil, no mundo de Valdrath.
+O jogador morreu na Terra e renasceu aqui com o corpo e a memória intactos. Ele escreve
+livremente o que quer fazer; você narra o resultado.
+
+ESTILO
+- Segunda pessoa ("você"), presente. Prosa concreta, sensorial, sem clichê de fantasia genérica.
+- Você escreve CAPÍTULOS, não respostas. Cada cena tem no mínimo 5 e no máximo 10 parágrafos.
+  Responder com dois ou três parágrafos é um erro grave: a cena fica pela metade.
+- Estrutura que funciona bem (não precisa ser rígida):
+  1) o que acontece imediatamente por causa da ação do jogador;
+  2) o ambiente respondendo — som, cheiro, temperatura, luz, gente ao redor;
+  3) alguém entra em cena ou reage, e começa o DIÁLOGO;
+  4) a conversa se desenvolve de verdade, com pelo menos quatro a seis falas trocadas,
+     cada uma numa linha, com a fala dita entre aspas e o gesto de quem fala em volta;
+  5) uma reviravolta pequena: uma informação nova, um pedido, uma ameaça, um preço;
+  6) o fecho, com o mundo em movimento e algo pendente no ar.
+- Diálogo é o coração da cena. Cada personagem fala diferente: um corta palavras, outro é
+  cerimonioso, outro xinga. Ninguém fala como narrador.
+- Personagens têm agenda própria. Interrompem, mudam de assunto, perguntam de volta, mentem,
+  cobram favores. Não são atendentes do jogador.
+- NUNCA ofereça lista de opções, nunca pergunte "o que você faz?", nunca fale pelo jogador
+  nem decida o que ele sente.
+
+MUNDO
+- Valdrath é medieval e perigoso: Pontelume é a cidade-ponte sobre o abismo de Vhar, o Selo
+  do Nono Rei está rachando e criaturas sobem da fenda à noite. Magia custa caro e é vigiada
+  pela Ordem do Compasso. Dinheiro é em cobres, pratas e coroas.
+- Consequência é lei: falha tem preço, grosseria afasta, violência atrai violência, mentira
+  pode ser descoberta depois. Pedidos impossíveis falham de forma verossímil.
+- Recompense criatividade. Deixe o mundo agir sozinho: alguém interrompe, começa a chover,
+  um guarda repara em você.
+
+LIMITES
+- Todos os personagens com quem o jogador pode se envolver são adultos, e a idade aparece na ficha.
+- Nenhuma criança em contexto sexual ou romântico, em hipótese alguma.
+- Romance e intimidade são escritos de forma sugestiva e adulta: tensão, desejo, toque.
+  Quando a cena avançaria para sexo, corte para depois — o silêncio, a manhã, um detalhe.
+  Sem descrição sexual explícita.
+
+FORMATO DA RESPOSTA — duas partes, nesta ordem:
+1) A narração em texto puro, sem markdown, sem aspas em volta.
+2) Na ÚLTIMA linha, os efeitos em JSON entre <<< e >>>, assim:
+<<<{"local":"nome do lugar","minutos":30,"hp":-4,"xp":25,"moedas":12,"itens_ganhos":["adaga enferrujada"],"itens_perdidos":[],"habilidade_nova":"","npcs":[{"id":"lyra","nome":"Lyra","idade":29,"papel":"caçadora de recompensas","sobre":"cicatriz no queixo, fala pouco","afinidade":1}],"memoria":""}>>>
+Regras do bloco: "hp", "xp", "moedas" e "afinidade" são VARIAÇÕES (podem ser negativas ou 0).
+Só inclua um npc quando ele aparecer de fato na cena; use sempre o mesmo id para a mesma pessoa.
+Dê xp quando o jogador resolver algo, descobrir algo ou correr risco real.
+Não escreva NADA depois do >>>.`;
+
+/* ==========================================================
+   SAVE
+   ========================================================== */
+const Save={
+  slot:1, d:null,
+  novo(){ return {
+    v:2, fase:'criacao', nome:'', passado:'',
+    nivel:1, xp:0, xpProx:100, hp:30, hpMax:30,
+    atr:{Força:5,Agilidade:5,Mente:5,Carisma:5}, moedas:0,
+    itens:[], habilidades:[], local:'Clareira das Cinzas',
+    dia:1, min:6*60, npcs:{}, memorias:[], log:[], hist:[]
+  };},
+  k(n){return PREFIX+':s'+n;},
+  carregar(n){ this.slot=n;
+    try{const r=localStorage.getItem(this.k(n)); this.d=r?JSON.parse(r):this.novo();}
+    catch(e){this.d=this.novo();}
+    const b=this.novo(); for(const k in b) if(this.d[k]===undefined) this.d[k]=b[k];
+    return this.d;
+  },
+  gravar(){ try{
+    const c=JSON.parse(JSON.stringify(this.d));
+    c.log=c.log.slice(-70); c.hist=c.hist.slice(-18); c.memorias=c.memorias.slice(-40);
+    localStorage.setItem(this.k(this.slot), JSON.stringify(c));
+  }catch(e){console.warn(e);} },
+  zerar(){ this.d=this.novo(); this.gravar(); },
+  exportar(){ const b=new Blob([JSON.stringify(this.d,null,2)],{type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(b);
+    a.download=PREFIX+'-slot'+this.slot+'.json'; a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),800); },
+  importar(){ const i=document.createElement('input'); i.type='file'; i.accept='.json,application/json';
+    i.onchange=()=>{const f=i.files[0]; if(!f)return; const r=new FileReader();
+      r.onload=()=>{try{ this.d=JSON.parse(r.result); this.gravar(); redesenhar(); alert('Progresso carregado.');}
+        catch(e){alert('Arquivo inválido.');}};
+      r.readAsText(f);}; i.click(); }
+};
+
+/* ==========================================================
+   UTIL
+   ========================================================== */
+const esc = s => String(s).replace(/[<>&]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
+function hhmm(){const h=Math.floor(Save.d.min/60)%24,m=Save.d.min%60;
+  return String(h).padStart(2,'0')+'h'+String(m).padStart(2,'0');}
+function periodo(){const h=Math.floor(Save.d.min/60)%24;
+  return h<5?'madrugada':h<11?'manhã':h<17?'tarde':h<20?'entardecer':'noite';}
+function avancar(m){ Save.d.min+=m; while(Save.d.min>=1440){Save.d.min-=1440; Save.d.dia++;} }
+const COR=['#f5a97f','#a7c7ff','#c9a7ff','#8fe3b4','#ffb3d1','#ffe08a','#9ee6ff'];
+function corDe(id){let h=0; for(let i=0;i<id.length;i++) h=(h*31+id.charCodeAt(i))%COR.length; return COR[h];}
+
+/* ==========================================================
+   LOG
+   ========================================================== */
+const elLog=document.getElementById('log');
+function bloco(tipo,html,guardar=true){
+  const d=document.createElement('div');
+  d.className = tipo==='acao'?'acao' : tipo==='sis'?'sis' : tipo==='sistema'?'sistema' : 'nar';
+  d.innerHTML = tipo==='acao' ? '<b>você</b>'+html : html;
+  elLog.appendChild(d); elLog.scrollTop=elLog.scrollHeight;
+  if(guardar && tipo!=='sis') Save.d.log.push({t:tipo,h:html});
+  return d;
+}
+const paras = t => String(t).split(/\n+/).filter(Boolean).map(l=>'<p>'+esc(l)+'</p>').join('');
+
+/* ==========================================================
+   ABERTURA
+   ========================================================== */
+function abertura(){
+  bloco('nar', paras(
+    'O último som do seu mundo é o de freios que não seguram.\n'+
+    'Depois: nada. Nem escuro, nem claro. Uma pausa longa demais para ser medida.\n'+
+    'Aí o cheiro volta primeiro — terra molhada, cinza, alguma coisa queimada há pouco. Você abre os olhos deitado numa clareira de árvores brancas, com duas luas no céu e a roupa com que morreu.\n'+
+    'No seu antebraço, onde não havia nada, agora existe uma marca. Ela arde de leve, como se estivesse te lendo.'
+  ));
+  bloco('sistema','<div class="h">A marca acende</div>'+
+    '<span>Nível 1</span><span class="r">HP 30/30</span><span class="g">XP 0</span><span class="o">0 cobres</span>');
+  bloco('nar', paras('Uma frase se forma na sua cabeça, sem voz:\n"Diga quem você foi."'));
+  bloco('sis','Escreva seu <b>nome</b> e, se quiser, quem você era na Terra. Exemplo: <i>Carlos, 24 anos, trabalhava de garçom e nunca tinha segurado uma arma na vida</i>.');
+  Save.gravar();
+}
+
+/* ==========================================================
+   CRIAÇÃO DO PERSONAGEM
+   ========================================================== */
+function criar(txt){
+  const nome = (txt.split(/[,.\n]/)[0]||'Viajante').trim().slice(0,28) || 'Viajante';
+  Save.d.nome = nome;
+  Save.d.passado = txt.trim().slice(0,400);
+  Save.d.fase = 'jogo';
+
+  const t = txt.toLowerCase();
+  const somar=(a,n)=>Save.d.atr[a]=Math.min(12,Save.d.atr[a]+n);
+  if(/(luta|briga|academ|muscul|obra|pedreiro|soldado|polic|boxe|jiu|futebol|carrega)/.test(t)) somar('Força',3);
+  if(/(corr|bike|bicicleta|skate|dança|danç|entregador|moto|escal|atleta|nad)/.test(t)) somar('Agilidade',3);
+  if(/(estud|program|professor|engenh|livro|médic|medic|advog|conta|quím|fisic|xadrez|ti|analista)/.test(t)) somar('Mente',3);
+  if(/(vende|garçom|garcom|atend|cantor|palco|amig|social|barman|recep|market|ator)/.test(t)) somar('Carisma',3);
+  if(/(sozinh|tímid|timid|calad|isolad)/.test(t)) somar('Mente',1);
+
+  bloco('sistema','<div class="h">Vínculo estabelecido</div>'+
+    '<span>'+esc(nome)+'</span>'+
+    Object.entries(Save.d.atr).map(([k,v])=>'<span>'+k+' '+v+'</span>').join(''));
+  bloco('nar', paras(
+    'A marca esfria. Onde ela ardia ficou um desenho de linhas finas, como uma bússola sem ponteiro.\n'+
+    'Do outro lado da clareira, entre as árvores brancas, alguma coisa grande muda de posição — sem pressa, como quem já te viu e está decidindo.\n'+
+    'Mais longe, para o sul, uma fumaça fina sobe atrás da colina. Fogueira, chaminé, ou o que sobrou de alguma coisa.'
+  ));
+  if(!temIA()) avisoSemChave();
+  Save.gravar(); atualizarTopo(); dicas();
+}
+
+function avisoSemChave(){
+  bloco('sis','O motor de IA está desligado, então o jogo está em <b>modo simples</b> '+
+    '(respostas curtas e prontas). Para a história ser escrita de verdade, pegue uma chave '+
+    '<b>gratuita</b> em 2 minutos:<br><br>'+
+    '1. abra <b>aistudio.google.com/apikey</b><br>'+
+    '2. entre com sua conta Google<br>'+
+    '3. clique em <b>Create API key</b> e copie<br>'+
+    '4. volte aqui no ⚙️ e cole no campo Chave<br><br>'+
+    'Não pede cartão e não cobra nada.', false);
+}
+
+/* ==========================================================
+   MOTOR SIMPLES (sem IA)
+   ========================================================== */
+function offline(txt){
+  const t=txt.toLowerCase();
+  if(/(sul|fumaça|fumaca|colina|caminh|and|ir |vou|segu|estrada)/.test(t)){
+    avancar(90); Save.d.local='Estrada de Pontelume';
+    return {narracao:'Você segue na direção da fumaça. O chão de musgo branco vira terra batida, a terra batida vira sulco de roda, e o sulco de roda vira estrada de verdade — larga o bastante para duas carroças e marcada de ferradura.\n'+
+      'Depois da terceira curva o barulho chega antes da imagem: eixo rangendo, cabra reclamando, gente discutindo preço. Uma fila de carroças espera diante de uma ponte que não deveria existir. Ela atravessa um abismo cuja outra margem some na neblina, e é toda feita de pedra escura encaixada sem argamassa.\n'+
+      '"Próximo!", grita um guarda de tabardo cinza, sem olhar para você. "Nome, procedência e o que carrega. E tira a mão de cima da bolsa, que eu enxergo."', xp:10};
+  }
+  if(/(olh|observ|repar|examin|ver )/.test(t)){
+    return {narracao:'Você para e olha com atenção pela primeira vez desde que acordou.\n'+
+      'As árvores são brancas até a raiz, de casca lisa como osso lixado, e não há uma única folha caída no chão — como se alguém varresse a clareira toda manhã. O musgo é pálido e cede demais sob a bota.\n'+
+      'No céu, duas luas: uma cheia e amarelada, outra fina e alta demais para a hora. A luz das duas se cruza e faz duas sombras suas, levemente descompassadas.\n'+
+      'A marca no antebraço esquenta quando você vira para o norte e esfria quando aponta para o sul, como um cão puxando a guia. Para o sul há fumaça. Para o norte há só a fileira de árvores brancas, e nenhum som de pássaro em lugar nenhum.'};
+  }
+  if(/(marca|braço|braco|bússola|bussola)/.test(t)){
+    return {narracao:'As linhas se movem devagar sob a pele, como tinta viva. Não dói. Quando você pensa em voltar para casa, elas param completamente.'};
+  }
+  if(/(grit|cham|fal|ola|olá|alguém|alguem)/.test(t)){
+    avancar(10);
+    return {narracao:'Sua voz sai rouca e some rápido entre as árvores. O que estava se movendo do outro lado da clareira para de se mover. Isso é pior.', hp:-2};
+  }
+  if(/(corr|fug|esconde)/.test(t)){
+    avancar(20); return {narracao:'Você corre. Galhos brancos arranham seu braço e a coisa atrás não te segue — ou segue devagar, confiante. Você para num barranco, sem ar, vivo.', hp:-3, xp:5};
+  }
+  if(/(dorm|descans|deit|espera)/.test(t)){
+    avancar(300); Save.d.hp=Math.min(Save.d.hpMax,Save.d.hp+8);
+    return {narracao:'Você se encolhe entre duas raízes e apaga. Acorda com o corpo doendo e as duas luas trocadas de lugar. São '+hhmm()+'.'};
+  }
+  return {narracao:'Você tenta, mas o mundo não reage.',
+    dica:'O modo simples entende só o básico. Configure um modelo em ⚙️ para escrever <b>qualquer coisa</b> e receber uma cena escrita na hora.'};
+}
+
+/* ==========================================================
+   MOTOR IA
+   ========================================================== */
+function api(){return{
+  key:localStorage.getItem(PREFIX+':key')||'',
+  model:localStorage.getItem(PREFIX+':model')||'gemini-2.5-flash',
+  url:localStorage.getItem(PREFIX+':url')||PRESETS.gemini.url,
+  tam:+(localStorage.getItem(PREFIX+':tam')||5200)
+};}
+/** Tem motor de IA disponível? (chave preenchida ou serviço que dispensa chave) */
+function temIA(){ const c=api(); return !!c.key || semChave(c.url); }
+
+function contexto(){
+  const d=Save.d;
+  let s='FICHA DO JOGADOR\n';
+  s+='Nome: '+d.nome+'. Antes de morrer na Terra: '+(d.passado||'não contou')+'\n';
+  s+='Nível '+d.nivel+', HP '+d.hp+'/'+d.hpMax+', XP '+d.xp+'/'+d.xpProx+', '+d.moedas+' cobres.\n';
+  s+='Atributos: '+Object.entries(d.atr).map(([k,v])=>k+' '+v).join(', ')+'\n';
+  s+='Habilidades: '+(d.habilidades.join(', ')||'nenhuma ainda')+'\n';
+  s+='Inventário: '+(d.itens.join(', ')||'nada além da roupa do corpo')+'\n\n';
+  s+='CENA\nDia '+d.dia+', '+hhmm()+' ('+periodo()+'). Lugar: '+d.local+'\n\n';
+  const ids=Object.keys(d.npcs);
+  if(ids.length){
+    s+='PESSOAS JÁ CONHECIDAS\n';
+    ids.forEach(i=>{const n=d.npcs[i];
+      s+='- '+i+': '+n.nome+', '+(n.idade||'adulta/o')+' anos, '+(n.papel||'')+'. '+(n.sobre||'')+' Afinidade com o jogador: '+(n.af||0)+'/10.\n';});
+    s+='\n';
+  }
+  if(d.memorias.length) s+='CRÔNICA\n- '+d.memorias.slice(-14).join('\n- ')+'\n';
+  return s;
+}
+
+/** Separa a narração dos efeitos. Aceita <<<json>>> ou um JSON solto. */
+function separar(bruto){
+  let txt=String(bruto||''), efeitos={};
+  const m=txt.match(/<<<([\s\S]*?)>>>/);
+  if(m){
+    txt=txt.slice(0,m.index);
+    try{ efeitos=JSON.parse(m[1]); }catch(e){}
+  } else {
+    const j=txt.match(/\{[\s\S]*\}\s*$/);
+    if(j){ try{ const o=JSON.parse(j[0]);
+      if(o.narracao!==undefined){ txt=o.narracao; efeitos=o; }
+      else { txt=txt.slice(0,j.index); efeitos=o; }
+    }catch(e){} }
+  }
+  efeitos.narracao=txt.replace(/<<<[\s\S]*$/,'').trim();
+  return efeitos;
+}
+/** Só a parte visível enquanto o texto ainda está chegando. */
+const parcial = t => String(t).split('<<<')[0].replace(/\{[\s\S]*$/,'');
+
+/** Uma chamada ao modelo. Devolve {texto, finish}. */
+async function umaChamada(msgs, aoVivo, jaEscrito){
+  const c=api();
+  const body={model:c.model, messages:msgs, temperature:0.95, max_tokens:c.tam, stream:true};
+  const h={'Content-Type':'application/json'};
+  if(c.key) h['Authorization']='Bearer '+c.key;
+
+  // servidores gratuitos falham de vez em quando: tenta até 3 vezes
+  let r, ultimoErro='';
+  for(let tent=1; tent<=3; tent++){
+    try{
+      r=await fetch(c.url,{method:'POST',headers:h,body:JSON.stringify(body)});
+      if(r.status<500 && r.status!==429) break;
+      ultimoErro='HTTP '+r.status;
+    }catch(e){ ultimoErro=e.message; r=null; }
+    if(tent<3){ if(aoVivo) aoVivo(jaEscrito+' (servidor ocupado, tentando de novo…)');
+      await new Promise(x=>setTimeout(x, 900*tent)); }
+  }
+  if(!r) throw new Error(ultimoErro+'. Troque de serviço em ⚙️ Ajustes.');
+  if(r.status>=500||r.status===429) throw new Error('O servidor respondeu '+r.status+' três vezes seguidas. Troque de serviço em ⚙️ Ajustes.');
+
+  // sem streaming disponível: refaz normal
+  if(!r.ok || !r.body){
+    if(!r.ok && r.status!==400) throw new Error('HTTP '+r.status+' — '+(await r.text()).slice(0,200));
+    body.stream=false;
+    r=await fetch(c.url,{method:'POST',headers:h,body:JSON.stringify(body)});
+    if(!r.ok) throw new Error('HTTP '+r.status+' — '+(await r.text()).slice(0,200));
+    const j=await r.json();
+    const ch=j.choices&&j.choices[0];
+    return {texto:(ch&&ch.message&&ch.message.content)||'', finish:(ch&&ch.finish_reason)||''};
+  }
+
+  const reader=r.body.getReader(), dec=new TextDecoder();
+  let buffer='', texto='', finish='', ultimo=0;
+  while(true){
+    const {done,value}=await reader.read();
+    if(done) break;
+    buffer+=dec.decode(value,{stream:true});
+    const linhas=buffer.split('\n');
+    buffer=linhas.pop();
+    for(const l of linhas){
+      const st=l.trim();
+      if(!st.startsWith('data:')) continue;
+      const dados=st.slice(5).trim();
+      if(dados==='[DONE]') continue;
+      try{
+        const o=JSON.parse(dados);
+        const ch=o.choices&&o.choices[0]; if(!ch) continue;
+        if(ch.finish_reason) finish=ch.finish_reason;
+        const d=ch.delta||ch.message;
+        const pedaco=d&&d.content;
+        if(pedaco){
+          texto+=pedaco;
+          const agora=Date.now();
+          if(aoVivo && agora-ultimo>60){ ultimo=agora; aoVivo(parcial(jaEscrito+texto)); }
+        }
+      }catch(e){}
+    }
+  }
+  if(aoVivo) aoVivo(parcial(jaEscrito+texto));
+  return {texto, finish};
+}
+
+/** Chamada completa: continua sozinha se o modelo cortar a cena no meio. */
+async function chamarIA(acao, aoVivo){
+  const c=api();
+  const [pMin,pMax]=PARAGRAFOS[c.tam]||[5,10];
+  const tamanho='TAMANHO DESTA CENA: no mínimo '+pMin+' parágrafos e no máximo '+pMax+'. '+
+    'Conte os parágrafos antes de terminar. Se houver qualquer pessoa na cena, pelo menos '+
+    Math.max(4,pMin-1)+' falas trocadas, cada fala numa linha própria. '+
+    'Aprofunde: descreva o lugar, o que as pessoas fazem com as mãos, o que elas escondem. '+
+    'Não resuma, não acelere, não encerre antes da hora. '+
+    'O bloco de efeitos no final não conta como parágrafo.';
+
+  const base=[{role:'system',content:REGRAS},
+              {role:'system',content:contexto()},
+              {role:'system',content:tamanho},
+              ...Save.d.hist.slice(-14),
+              {role:'user',content:acao}];
+
+  let texto='', passo=0, finish='';
+  do{
+    const msgs = texto
+      ? base.concat([{role:'assistant',content:texto},
+          {role:'user',content:'Continue exatamente de onde parou, na mesma frase se preciso, sem repetir nada do que já escreveu. Feche a cena e termine com o bloco de efeitos entre <<< e >>>.'}])
+      : base;
+    const res = await umaChamada(msgs, aoVivo, texto);
+    texto += res.texto;
+    finish = res.finish;
+    passo++;
+  } while(finish==='length' && texto.indexOf('<<<')<0 && passo<4);
+
+  return separar(texto);
+}
+
+/* ==========================================================
+   APLICAR RESULTADO
+   ========================================================== */
+function aplicar(res){
+  const d=Save.d, av=[];
+  if(res.local && String(res.local).trim()) d.local=String(res.local).trim().slice(0,60);
+  avancar(Math.min(Math.max(Number(res.minutos)||15,1),720));
+
+  const dhp=Number(res.hp)||0;
+  if(dhp){ d.hp=Math.max(0,Math.min(d.hpMax,d.hp+dhp));
+    av.push('<span class="'+(dhp<0?'r':'g')+'">HP '+(dhp>0?'+':'')+dhp+'</span>'); }
+
+  const dxp=Number(res.xp)||0;
+  if(dxp>0){ d.xp+=dxp; av.push('<span class="g">+'+dxp+' XP</span>'); }
+
+  const dm=Number(res.moedas)||0;
+  if(dm){ d.moedas=Math.max(0,d.moedas+dm); av.push('<span class="o">'+(dm>0?'+':'')+dm+' cobres</span>'); }
+
+  (res.itens_ganhos||[]).forEach(i=>{ i=String(i).slice(0,40); if(i && !d.itens.includes(i)){ d.itens.push(i); av.push('<span>+ '+esc(i)+'</span>'); }});
+  (res.itens_perdidos||[]).forEach(i=>{ const k=d.itens.indexOf(String(i)); if(k>=0){ d.itens.splice(k,1); av.push('<span class="r">− '+esc(i)+'</span>'); }});
+
+  if(res.habilidade_nova && String(res.habilidade_nova).trim()){
+    const h=String(res.habilidade_nova).trim().slice(0,40);
+    if(!d.habilidades.includes(h)){ d.habilidades.push(h); av.push('<span class="g">Habilidade: '+esc(h)+'</span>'); }
+  }
+
+  (res.npcs||[]).forEach(n=>{
+    if(!n || !n.id) return;
+    const id=String(n.id).toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,20); if(!id) return;
+    const novo=!d.npcs[id];
+    const a=d.npcs[id]||{af:0};
+    d.npcs[id]={ nome:String(n.nome||a.nome||id).slice(0,30),
+      idade:Number(n.idade)||a.idade||null,
+      papel:String(n.papel||a.papel||'').slice(0,60),
+      sobre:String(n.sobre||a.sobre||'').slice(0,200),
+      af:Math.max(-5,Math.min(10,(a.af||0)+(Number(n.afinidade)||0))) };
+    if(novo) av.push('<span>conheceu '+esc(d.npcs[id].nome)+'</span>');
+  });
+
+  if(res.memoria && String(res.memoria).trim()) d.memorias.push(String(res.memoria).trim().slice(0,160));
+
+  // nível
+  while(d.xp>=d.xpProx){
+    d.xp-=d.xpProx; d.nivel++; d.xpProx=Math.round(d.xpProx*1.6);
+    d.hpMax+=10; d.hp=d.hpMax;
+    const chaves=Object.keys(d.atr); const k=chaves[Math.floor(Math.random()*chaves.length)];
+    d.atr[k]=Math.min(20,d.atr[k]+1);
+    bloco('sistema','<div class="h">Nível '+d.nivel+'</div><span class="g">HP máximo +10</span><span class="g">'+k+' +1</span><span>Vida restaurada</span>');
+  }
+
+  if(av.length) bloco('sistema','<div class="h">Sistema</div>'+av.join(''));
+
+  if(d.hp<=0){
+    d.hp=Math.max(6,Math.round(d.hpMax*0.25));
+    d.moedas=Math.floor(d.moedas*0.5);
+    d.local='Clareira das Cinzas';
+    d.memorias.push('Morreu uma segunda vez e a marca o trouxe de volta à clareira.');
+    bloco('sistema','<div class="h">Você morre de novo</div><span class="r">A marca arde e te costura de volta</span><span class="r">metade das moedas perdida</span>');
+    bloco('nar', paras('Escuro. Depois o cheiro de cinza, outra vez. Você acorda na clareira das árvores brancas com a roupa rasgada e a sensação de que a marca está ficando impaciente com você.'));
+  }
+}
+
+/* ==========================================================
+   TURNO
+   ========================================================== */
+let ocupado=false;
+async function jogar(txt){
+  if(ocupado||!txt.trim()) return;
+  ocupado=true; document.getElementById('enviar').disabled=true;
+
+  bloco('acao', esc(txt));
+
+  if(Save.d.fase==='criacao'){ criar(txt); Save.gravar();
+    ocupado=false; document.getElementById('enviar').disabled=false; return; }
+
+  const esperando=bloco('nar','<p class="pensando">…</p>',false);
+  let res, transmitiu=false;
+  try{
+    if(temIA()){
+      Save.d.hist.push({role:'user',content:txt});
+      res=await chamarIA(txt, p=>{
+        if(!p) return;
+        transmitiu=true;
+        esperando.innerHTML=paras(p);
+        elLog.scrollTop=elLog.scrollHeight;
+      });
+      Save.d.hist.push({role:'assistant',content:res.narracao||''});
+    } else {
+      res=offline(txt); await new Promise(r=>setTimeout(r,250));
+    }
+  }catch(err){ res={narracao:'',erro:'Não consegui falar com o modelo. '+err.message}; }
+
+  if(res.erro){ esperando.remove(); bloco('sis',res.erro,false); }
+  else if(transmitiu){
+    // já está na tela: só finaliza o texto e registra no histórico salvo
+    esperando.innerHTML=paras(res.narracao||'');
+    Save.d.log.push({t:'nar',h:esperando.innerHTML});
+  } else {
+    esperando.remove();
+    if(res.narracao) bloco('nar',paras(res.narracao));
+  }
+  aplicar(res);
+  if(res.dica) bloco('sis',res.dica,false);
+
+  atualizarTopo(); dicas(); Save.gravar();
+  ocupado=false; document.getElementById('enviar').disabled=false;
+}
+
+/* ==========================================================
+   INTERFACE
+   ========================================================== */
+function atualizarTopo(){
+  const d=Save.d;
+  document.getElementById('hNome').innerHTML = d.nome ? esc(d.nome)+' <b>de Valdrath</b>' : 'Renascido em <b>Valdrath</b>';
+  document.getElementById('hLoc').textContent = d.fase==='criacao' ? 'antes do começo'
+    : 'Dia '+d.dia+' · '+hhmm()+' · '+d.local;
+  document.getElementById('hNv').textContent='Nv '+d.nivel;
+  document.getElementById('hHp').style.width=Math.round(d.hp/d.hpMax*100)+'%';
+  document.getElementById('hHpN').textContent=d.hp+'/'+d.hpMax;
+  document.getElementById('hXp').style.width=Math.round(d.xp/d.xpProx*100)+'%';
+  document.getElementById('hXpN').textContent=d.xp+'/'+d.xpProx;
+}
+function dicas(){
+  const b=document.getElementById('dicas'); b.innerHTML='';
+  if(Save.d.fase==='criacao') return;
+  const ids=Object.keys(Save.d.npcs);
+  const ideias=['Olhar em volta','Examinar a marca no braço'];
+  ids.slice(-2).forEach(i=>ideias.push('Conversar com '+Save.d.npcs[i].nome));
+  ideias.push('Seguir para a fumaça ao sul','Procurar comida','Descansar');
+  ideias.slice(0,7).forEach(t=>{const x=document.createElement('button'); x.textContent=t;
+    x.onclick=()=>{const e=document.getElementById('entrada'); e.value=t; e.focus();}; b.appendChild(x);});
+}
+function painelFicha(){
+  const d=Save.d;
+  document.getElementById('fichaTopo').innerHTML=
+    '<div class="stat"><span>Nome</span><b>'+esc(d.nome||'—')+'</b></div>'+
+    '<div class="stat"><span>Nível</span><b>'+d.nivel+'</b></div>'+
+    '<div class="stat"><span>Vida</span><b>'+d.hp+' / '+d.hpMax+'</b></div>'+
+    '<div class="stat"><span>Experiência</span><b>'+d.xp+' / '+d.xpProx+'</b></div>'+
+    '<div class="stat"><span>Moedas</span><b style="color:var(--ouro)">'+d.moedas+' cobres</b></div>'+
+    '<div class="stat"><span>Lugar</span><b>'+esc(d.local)+'</b></div>'+
+    (d.passado?'<p class="sobre">Na Terra: '+esc(d.passado)+'</p>':'');
+  document.getElementById('fichaAtr').innerHTML=Object.entries(d.atr)
+    .map(([k,v])=>'<div class="stat"><span>'+k+'</span><b>'+v+'</b></div>').join('');
+  document.getElementById('fichaHab').innerHTML=d.habilidades.length
+    ? d.habilidades.map(h=>'<span class="tag o">'+esc(h)+'</span>').join('')
+    : '<p class="sobre" style="margin:0">Nenhuma habilidade desperta ainda.</p>';
+  document.getElementById('fichaInv').innerHTML=d.itens.length
+    ? d.itens.map(i=>'<span class="tag">'+esc(i)+'</span>').join('')
+    : '<p class="sobre" style="margin:0">Só a roupa com que você morreu.</p>';
+}
+function painelMundo(){
+  const box=document.getElementById('listaNpc'); const ids=Object.keys(Save.d.npcs);
+  box.innerHTML = ids.length ? '' : '<p class="sobre" style="margin:0">Você ainda não conheceu ninguém. As pessoas que aparecerem na história entram aqui sozinhas.</p>';
+  ids.forEach(id=>{
+    const n=Save.d.npcs[id], v=n.af||0, pct=Math.max(0,v)*10;
+    const nv=v<0?'Hostil':v===0?'Indiferente':v<4?'Cordial':v<7?'Próxima(o)':'Leal';
+    const d=document.createElement('div'); d.className='pcard';
+    d.innerHTML='<div class="npc"><div class="av" style="background:'+corDe(id)+'">'+esc((n.nome||'?')[0])+'</div>'+
+      '<div style="flex:1"><h3>'+esc(n.nome)+(n.idade?' <span class="id">· '+n.idade+' anos</span>':'')+'</h3>'+
+      '<div style="font-size:12px;color:var(--dim)">'+esc(n.papel||'')+'</div></div></div>'+
+      (n.sobre?'<p class="sobre">'+esc(n.sobre)+'</p>':'')+
+      '<div class="bar"><i style="width:'+pct+'%"></i></div>'+
+      '<div class="lbl"><span>'+nv+'</span><span>'+v+'/10</span></div>';
+    box.appendChild(d);
+  });
+  const m=document.getElementById('memoria');
+  m.innerHTML=Save.d.memorias.length
+    ? Save.d.memorias.slice(-20).map(x=>'<div class="memo">'+esc(x)+'</div>').join('')
+    : '<p class="sobre" style="margin:0">Sua história ainda não tem marcos.</p>';
+}
+function redesenhar(){
+  elLog.innerHTML='';
+  if(!Save.d.log.length) abertura();
+  else Save.d.log.forEach(x=>bloco(x.t,x.h,false));
+  atualizarTopo(); dicas(); painelFicha(); painelMundo();
+  elLog.scrollTop=elLog.scrollHeight;
+}
+function abrir(p){document.getElementById(p).classList.add('on');document.getElementById('fundo').classList.add('on');}
+function fechar(){document.querySelectorAll('.painel').forEach(x=>x.classList.remove('on'));
+  document.getElementById('fundo').classList.remove('on');}
+
+/* ==========================================================
+   AJUSTES
+   ========================================================== */
+const AJUDA={
+  pollinations:'Era a opção sem cadastro, mas o serviço gratuito foi descontinuado e agora vive fora do ar. Deixado aqui só por garantia — use o Groq.',
+  gemini:'⭐ O melhor para o que você quer: escreve cenas longas sem cortar e obedece bem o número de parágrafos. Grátis, sem cartão. Entre em <b>aistudio.google.com/apikey</b> com sua conta Google, clique em "Create API key", copie e cole aqui.',
+  groq:'⚡ O mais rápido de todos. Grátis, sem cartão: <b>console.groq.com/keys</b> → login → Create API Key. Porém o plano gratuito limita o total de texto por dia, então em cenas de 10 parágrafos ele acaba antes — bom para cenas curtas e médias.',
+  openrouter:'Crie conta em <b>openrouter.ai/keys</b>. Os modelos marcados <code>:free</code> não custam nada, mas dão 50 respostas por dia. Os sem <code>:free</code> são pagos.',
+  local:'100% grátis e ilimitado, mas roda só no PC e exige instalar o <b>Ollama</b> (ollama.com) ou o LM Studio. No celular não funciona, e pelo site publicado o navegador costuma bloquear a conexão com o seu PC.',
+  custom:'Qualquer endpoint no formato da OpenAI.'
+};
+function preencherModelos(p){
+  const sel=document.getElementById('modeloSel'); sel.innerHTML='';
+  PRESETS[p].modelos.forEach(([id,desc])=>{
+    const o=document.createElement('option'); o.value=id; o.textContent=desc; sel.appendChild(o);
+  });
+  document.getElementById('comoObter').innerHTML=AJUDA[p]||'';
+  const precisa=PRESETS[p].chave;
+  document.getElementById('lblKey').innerHTML = precisa ? 'Chave de API' : 'Chave de API <span style="color:var(--xp)">— não precisa, deixe vazio</span>';
+  document.getElementById('apiKey').placeholder = precisa ? 'cole a chave aqui' : 'não é necessário';
+}
+document.getElementById('preset').onchange=e=>{
+  const p=e.target.value; preencherModelos(p);
+  document.getElementById('apiUrl').value=PRESETS[p].url;
+  document.getElementById('apiModel').value=PRESETS[p].modelos[0][0];
+  if(!PRESETS[p].chave) document.getElementById('apiKey').value='';
+};
+
+/* testar conexão */
+document.getElementById('bTestar').onclick=async ()=>{
+  const r=document.getElementById('resTeste');
+  const url=document.getElementById('apiUrl').value.trim();
+  const model=document.getElementById('apiModel').value.trim();
+  const key=document.getElementById('apiKey').value.trim();
+  r.innerHTML='<span style="color:var(--dim)">Testando…</span>';
+  try{
+    const h={'Content-Type':'application/json'}; if(key) h['Authorization']='Bearer '+key;
+    const resp=await fetch(url,{method:'POST',headers:h,body:JSON.stringify({
+      model, messages:[{role:'user',content:'Responda apenas: ok'}], max_tokens:10 })});
+    if(!resp.ok){ r.innerHTML='<span style="color:var(--hp)">Erro '+resp.status+'. '+
+      (resp.status===401?'Chave inválida ou faltando.':resp.status===429?'Limite diário atingido — tente outro serviço.':'Verifique o modelo e o endpoint.')+'</span>'; return; }
+    const j=await resp.json();
+    const t=(j.choices&&j.choices[0]&&j.choices[0].message.content||'').trim();
+    r.innerHTML='<span style="color:var(--xp)">✓ Funcionando. O modelo respondeu: “'+esc(t.slice(0,40))+'”</span>';
+  }catch(err){
+    r.innerHTML='<span style="color:var(--hp)">Falhou: '+esc(err.message)+'. Se for modelo local, o navegador bloqueou a conexão.</span>';
+  }
+};
+document.getElementById('modeloSel').onchange=e=>{document.getElementById('apiModel').value=e.target.value;};
+
+/* ==========================================================
+   EVENTOS
+   ========================================================== */
+const ent=document.getElementById('entrada');
+function mandar(){const v=ent.value; ent.value=''; ent.style.height='auto'; jogar(v);}
+document.getElementById('enviar').onclick=mandar;
+ent.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();mandar();}});
+ent.addEventListener('input',function(){this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px';});
+document.getElementById('bFicha').onclick=()=>{painelFicha();abrir('pFicha');};
+document.getElementById('bMundo').onclick=()=>{painelMundo();abrir('pMundo');};
+document.getElementById('bConf').onclick=()=>abrir('pConf');
+document.getElementById('fundo').onclick=fechar;
+document.querySelectorAll('[data-fechar]').forEach(b=>b.onclick=fechar);
+document.getElementById('bSalvarApi').onclick=()=>{
+  localStorage.setItem(PREFIX+':key',document.getElementById('apiKey').value.trim());
+  localStorage.setItem(PREFIX+':model',document.getElementById('apiModel').value.trim());
+  localStorage.setItem(PREFIX+':url',document.getElementById('apiUrl').value.trim());
+  localStorage.setItem(PREFIX+':tam',document.getElementById('tam').value);
+  const b=document.getElementById('bSalvarApi'); b.textContent='✓ Salvo';
+  setTimeout(()=>{b.textContent='Salvar'; fechar();},800);
+  bloco('sis','Motor ligado com <b>'+esc(document.getElementById('apiModel').value.trim())+'</b>. Agora escreva o que quiser.',false);
+};
+document.getElementById('bExp').onclick=()=>Save.exportar();
+document.getElementById('bImp').onclick=()=>Save.importar();
+document.getElementById('bReset').onclick=()=>{if(confirm('Apagar este slot e renascer do zero?')){Save.zerar();redesenhar();fechar();}};
+document.getElementById('selSlot').onchange=e=>{Save.carregar(+e.target.value);redesenhar();};
+window.addEventListener('pagehide',()=>Save.gravar());
+document.addEventListener('visibilitychange',()=>{if(document.hidden)Save.gravar();});
+
+/* ---- início ---- */
+Save.carregar(1);
+const c0=api();
+let presetInicial='custom';
+for(const p in PRESETS) if(PRESETS[p].url===c0.url) presetInicial=p;
+if(!localStorage.getItem(PREFIX+':url')) presetInicial='gemini';
+document.getElementById('preset').value=presetInicial;
+preencherModelos(presetInicial);
+document.getElementById('apiUrl').value=c0.url;
+document.getElementById('apiModel').value=c0.model;
+document.getElementById('apiKey').value=c0.key;
+document.getElementById('tam').value=String(c0.tam);
+redesenhar();
+if(!temIA()) avisoSemChave();
+</script>
+</body>
+</html>
