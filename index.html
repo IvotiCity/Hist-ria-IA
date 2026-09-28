@@ -2123,7 +2123,11 @@ function planoAtual(){
   const u=(api().url||'').toLowerCase();
   if(/generativelanguage|googleapis/.test(u)) return 'gemini';
   if(/groq\.com/.test(u))                    return 'groq';
-  if(/openrouter/.test(u))                   return 'openrouter';
+  if(/openrouter/.test(u)){
+    /* modelo pago no OpenRouter não tem teto diário — só o crédito */
+    const mod=(api().model||'').toLowerCase();
+    return (/:free$/.test(mod) || mod==='openrouter/free') ? 'openrouter' : 'pago';
+  }
   if(/pollinations/.test(u))                 return 'pollinations';
   if(/localhost|127\.0\.0\.1/.test(u))       return 'local';
   return 'pago';
@@ -3842,6 +3846,9 @@ function preencherModelos(p){
   PRESETS[p].modelos.forEach(([id,desc])=>{
     const o=document.createElement('option'); o.value=id; o.textContent=desc; sel.appendChild(o);
   });
+  /* deixa marcado o modelo que está realmente em uso, se ele estiver na lista */
+  const atual=(document.getElementById('apiModel').value||api().model||'');
+  if([...sel.options].some(o=>o.value===atual)) sel.value=atual;
   document.getElementById('comoObter').innerHTML=AJUDA[p]||'';
   const precisa=PRESETS[p].chave;
   document.getElementById('lblKey').innerHTML = precisa ? 'Chave de API' : 'Chave de API <span style="color:var(--xp)">— não precisa, deixe vazio</span>';
@@ -4070,7 +4077,11 @@ document.getElementById('bMochila').onclick=()=>{painelMochila();abrir('pMochila
 document.getElementById('bMapa').onclick=()=>{painelMapa();abrir('pMapa');};
 document.getElementById('bMundo').onclick=()=>{painelMundo();abrir('pMundo');};
 document.getElementById('bBestia').onclick=()=>{painelBestia();abrir('pBestia');};
-document.getElementById('bConf').onclick=()=>{painelUso();painelErros();abrir('pConf');};
+document.getElementById('bConf').onclick=()=>{
+  /* se o preço ainda não foi definido e conhecemos o modelo, calibra o medidor sozinho */
+  if(!localStorage.getItem(PREFIX+':pin') && PRECOS[api().model]) aplicarPreco(api().model);
+  painelUso(); painelErros(); abrir('pConf');
+};
 document.getElementById('fundo').onclick=fechar;
 document.querySelectorAll('[data-fechar]').forEach(b=>b.onclick=fechar);
 document.getElementById('bSalvarApi').onclick=()=>{
@@ -4173,7 +4184,11 @@ Save.carregar(1);
 const c0=api();
 let presetInicial='custom';
 for(const p in PRESETS) if(PRESETS[p].url===c0.url) presetInicial=p;
-if(!localStorage.getItem(PREFIX+':url')) presetInicial='gemini';
+/* sem URL salva, o serviço é o do padrão de fábrica — hoje o OpenRouter */
+if(!localStorage.getItem(PREFIX+':url')){
+  presetInicial='custom';
+  for(const p in PRESETS) if(PRESETS[p].url===api().url) presetInicial=p;
+}
 /* quem já tinha o modelo aposentado salvo no navegador é migrado na abertura */
 if(/generativelanguage\.googleapis\.com/.test(c0.url) && /^gemini-(2\.[05]|1\.5)/.test(c0.model)){
   localStorage.setItem(PREFIX+':model','gemini-3.8-flash');
@@ -4206,5 +4221,5 @@ atualizarMotor();
 barraCena(false);
 if(!temIA()) avisoSemChave();
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a424ae77ea6a311f',t:'MTc5MDYxODc4MQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a424d64efa72d79f',t:'MTc5MDYyMDQxMw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
