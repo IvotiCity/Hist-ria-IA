@@ -444,10 +444,14 @@
     <div class="pcard">
       <h4 class="t">Motor de IA</h4>
       <div id="motorEstado" style="font-size:13px;font-weight:600;margin-bottom:8px"></div>
-      <p class="dica" style="margin-top:0">Todas as opções são <b>gratuitas e sem cartão</b>.
-      Você precisa de uma chave (leva 2 minutos e não pede pagamento nenhum).
-      Para resposta instantânea: <b>Groq</b>. Para os textos mais longos e bem escritos:
-      <b>Google AI Studio</b>.</p>
+      <p class="dica" style="margin-top:0">Uma cena deste jogo manda cerca de <b>15 mil tokens</b>.
+      Isso descarta serviços com cota apertada.
+      <br><b>Grátis:</b> Google AI Studio, nos modelos Flash mais antigos (1.500 chamadas por dia).
+      Se a cota estourar, troque o modelo antes de desistir — a família 3.x tem franquia mensal
+      pequena, e cada erro de cota ainda gasta as tentativas automáticas.
+      <br><b>Pago, e barato:</b> OpenRouter com DeepSeek V4.1 Flash sai por volta de
+      <b>R$ 6 por mês</b> jogando 50 cenas por dia. A chave é <b>uma só, do OpenRouter</b>,
+      e vale para todos os modelos da lista.</p>
 
       <label class="f">Serviço</label>
       <select class="f" id="preset">
@@ -665,17 +669,32 @@ const PRESETS={
     ['qwen/qwen3-32b','Qwen 3 32B — grátis']
   ]},
   openrouter:{url:'https://openrouter.ai/api/v1/chat/completions', chave:true, modelos:[
-    ['deepseek/deepseek-v4-flash:free','DeepSeek V4 Flash (free) — 50 respostas/dia de graça'],
-    ['google/gemma-4-31b:free','Gemma 4 31B (free) — grátis'],
-    ['openrouter/free','Rota gratuita automática'],
-    ['deepseek/deepseek-v4-flash','DeepSeek V4 Flash — PAGO, sem limite diário'],
-    ['anthropic/claude-sonnet-5','Claude Sonnet 5 — PAGO, melhor prosa']
+    ['deepseek/deepseek-v4.1-flash','⭐ DeepSeek V4.1 Flash — PAGO, ~R$5/mês. O melhor custo para este jogo'],
+    ['z-ai/glm-5.3-flash','GLM 5.3 Flash — PAGO, ~R$6/mês'],
+    ['sao10k/l3.3-euryale-70b','Euryale 70B — PAGO, ~R$74/mês. Feito para narrativa, sem filtro'],
+    ['nousresearch/hermes-4-405b','Hermes 4 405B — PAGO, ~R$123/mês. Segue instrução muito bem'],
+    ['anthropic/claude-sonnet-5','Claude Sonnet 5 — PAGO, ~R$395/mês. A melhor prosa'],
+    ['deepseek/deepseek-v4-flash:free','DeepSeek V4 Flash (free) — só 50 respostas/dia'],
+    ['openrouter/free','Rota gratuita automática — some quando lota']
   ]},
   local:{url:'http://localhost:11434/v1/chat/completions', chave:false, modelos:[
     ['llama3.1','Ollama — grátis e ilimitado, mas só no PC'],
     ['local-model','LM Studio — o modelo que estiver carregado']
   ]},
   custom:{url:'', chave:true, modelos:[['','digite o id do modelo']]}
+};
+/* US$ por milhão de tokens [entrada, saída]. Alimenta o medidor de gasto. */
+const PRECOS={
+  'deepseek/deepseek-v4.1-flash':[0.035,0.29],
+  'deepseek/deepseek-v4-flash':[0.021,0.32],
+  'z-ai/glm-5.3-flash':[0.045,0.14],
+  'xiaomi/mimo-v2.5':[0.119,0.238],
+  'sao10k/l3.3-euryale-70b':[0.65,0.75],
+  'nousresearch/hermes-4-405b':[1,3],
+  'mistralai/mistral-large-2512':[0.50,1.50],
+  'anthropic/claude-sonnet-5':[3,15],
+  'gemini-2.5-flash':[0.30,2.50],
+  'gemini-3.8-flash':[0.75,3.75]
 };
 const semChave = u => /pollinations|localhost|127\.0\.0\.1/.test(u||'');
 /* tokens máximos -> [mínimo, máximo] de parágrafos pedidos ao modelo */
@@ -2126,6 +2145,15 @@ function barra(pct,perigo){
     (perigo?'#ff6b81':'linear-gradient(90deg,var(--accent),var(--accent2))')+'"></i></div>';
 }
 
+/** Grava o consumo. Prefere o usage do provedor; só estima quando ele não vem. */
+function registrarUso(usage, charsIn, charsOut){
+  if(usage && usage.prompt_tokens){
+    const u=Uso.ler();
+    u.req++; u.tin+=usage.prompt_tokens; u.tout+=(usage.completion_tokens||0);
+    try{ localStorage.setItem(PREFIX+':uso',JSON.stringify(u)); }catch(e){}
+    if(document.getElementById('usoBox')) painelUso();
+  } else Uso.registrar(charsIn, charsOut);
+}
 const Uso={
   hoje(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); },
   ler(){
@@ -2209,9 +2237,10 @@ function painelUso(){
 
 function api(){return{
   key:localStorage.getItem(PREFIX+':key')||'',
-  model:localStorage.getItem(PREFIX+':model')||'gemini-3.8-flash',
-  url:localStorage.getItem(PREFIX+':url')||PRESETS.gemini.url,
-  tam:+(localStorage.getItem(PREFIX+':tam')||5200),
+  model:localStorage.getItem(PREFIX+':model')||'deepseek/deepseek-v4.1-flash',
+  url:localStorage.getItem(PREFIX+':url')||PRESETS.openrouter.url,
+  /* cena enorme rende mais história por chamada — e o custo é 70% entrada fixa */
+  tam:+(localStorage.getItem(PREFIX+':tam')||8000),
   mem:+(localStorage.getItem(PREFIX+':mem')||14)
 };}
 /* ---------- MEMÓRIA ENVIADA ----------
@@ -2248,8 +2277,9 @@ function avisoSemChave(){
   _avisou=true;
   try{
     bloco('sis','⚠️ <b>Sem motor de IA ligado.</b> O jogo está rodando no modo simples, '+
-      'com respostas curtas e prontas. Abra <b>⚙️ Ajustes</b> e cole uma chave gratuita '+
-      '(Groq é instantâneo; Google AI Studio escreve melhor) para o narrador acordar de verdade.',false);
+      'com respostas curtas e prontas. Abra <b>⚙️ Ajustes</b> e cole uma chave para o narrador '+
+      'acordar de verdade — <b>Google AI Studio</b> é grátis, e o <b>OpenRouter</b> com '+
+      'DeepSeek V4.1 Flash custa uns R$ 6 por mês.',false);
   }catch(e){ /* log ainda não montado: silencia */ }
 }
 
@@ -2479,6 +2509,12 @@ async function comReserva(msgs, aoVivo, jaEscrito, motivo, jaEhReserva){
 function erroAmigavel(e){
   const m=String(e&&e.message||e);
   if(!navigator.onLine) return 'Você está sem internet. O texto da IA vem de fora do aparelho — reconecte e toque em ▶ Continuar.';
+  if(m==='SEM_CREDITO') return 'O modelo escolhido é PAGO e a conta está sem saldo. Adicione crédito em '+
+    'openrouter.ai/credits, ou troque para um modelo marcado :free em ⚙️ Ajustes → Modelo.';
+  if(m==='CHAVE_INVALIDA') return 'A chave de API foi recusada. Duas causas comuns: (1) ela é de '+
+    'outro serviço — usando OpenRouter, a chave tem de ser do OpenRouter, não da DeepSeek; '+
+    '(2) foi copiada pela metade. O OpenRouter só mostra a chave inteira na hora em que ela é '+
+    'criada, então se você pegou o texto mascarado da lista, crie uma Nova Chave.';
   if(m==='TEMPO_ESGOTADO') return 'O servidor demorou demais para responder (sinal fraco ou rede móvel instável). '+
     'Tente de novo; se repetir, desligue o streaming em ⚙️ Ajustes → Conexão.';
   if(/Failed to fetch|NetworkError|Load failed|network/i.test(m))
@@ -2492,6 +2528,8 @@ async function umaChamada(msgs, aoVivo, jaEscrito, cfgAlt){
   const c=cfgAlt||api();
   const querStream = localStorage.getItem(PREFIX+':stream')!=='0';
   const body={model:c.model, messages:msgs, temperature:0.95, max_tokens:c.tam, stream:querStream};
+  /* sem isto, em streaming o provedor não manda a contagem e o medidor teria de chutar */
+  if(querStream) body.stream_options={include_usage:true};
   const h={'Content-Type':'application/json'};
   if(c.key) h['Authorization']='Bearer '+c.key;
 
@@ -2560,6 +2598,8 @@ async function umaChamada(msgs, aoVivo, jaEscrito, cfgAlt){
 
   // sem streaming (por opção, por fallback ou porque o servidor não mandou corpo)
   if(!r.ok || !r.body || !body.stream){
+    if(r.status===402) throw new Error('SEM_CREDITO');
+    if(r.status===401) throw new Error('CHAVE_INVALIDA');
     if(!r.ok && r.status!==400) throw new Error('HTTP '+r.status+' — '+(await r.text()).slice(0,200));
     if(r.ok && !body.stream){
       const j0=await r.json();
@@ -2576,16 +2616,13 @@ async function umaChamada(msgs, aoVivo, jaEscrito, cfgAlt){
     const ch=j.choices&&j.choices[0];
     const txt=(ch&&ch.message&&ch.message.content)||'';
     if(aoVivo && txt) aoVivo(parcial(jaEscrito+txt));
-    if(j.usage&&j.usage.prompt_tokens){
-      const u=Uso.ler(); u.req++; u.tin+=j.usage.prompt_tokens; u.tout+=(j.usage.completion_tokens||0);
-      try{ localStorage.setItem(PREFIX+':uso',JSON.stringify(u)); }catch(e){} painelUso();
-    } else Uso.registrar(JSON.stringify(msgs).length, txt.length);
+    registrarUso(j.usage, JSON.stringify(msgs).length, txt.length);
     return {texto:txt, finish:(ch&&ch.finish_reason)||''};
   }
 
   const charsEnviados=JSON.stringify(msgs).length;
   const reader=r.body.getReader(), dec=new TextDecoder();
-  let buffer='', texto='', finish='', ultimo=0, morreu='';
+  let buffer='', texto='', finish='', ultimo=0, morreu='', usoReal=null;
 
   /* vigia: se o texto parar de chegar, corta em vez de ficar pendurado para sempre */
   const lerComPrazo=()=>Promise.race([
@@ -2607,6 +2644,8 @@ async function umaChamada(msgs, aoVivo, jaEscrito, cfgAlt){
         if(dados==='[DONE]') continue;
         try{
           const o=JSON.parse(dados);
+          /* o provedor manda o usage no último pedaço — vale mais que estimativa */
+          if(o.usage && o.usage.prompt_tokens) usoReal=o.usage;
           const ch=o.choices&&o.choices[0]; if(!ch) continue;
           if(ch.finish_reason) finish=ch.finish_reason;
           const d=ch.delta||ch.message;
@@ -2633,14 +2672,14 @@ async function umaChamada(msgs, aoVivo, jaEscrito, cfgAlt){
       const c2=j2.choices&&j2.choices[0];
       const t2=(c2&&c2.message&&c2.message.content)||'';
       if(aoVivo && t2) aoVivo(parcial(jaEscrito+t2));
-      Uso.registrar(charsEnviados, t2.length);
+      registrarUso(usoReal, charsEnviados, t2.length);
       return {texto:t2, finish:(c2&&c2.finish_reason)||''};
     }
   }
 
   if(aoVivo) aoVivo(parcial(jaEscrito+texto));
   if(!morreu) sucessoStream();
-  Uso.registrar(charsEnviados, texto.length);
+  registrarUso(usoReal, charsEnviados, texto.length);
   return {texto, finish: morreu ? 'rede' : finish};
 }
 
@@ -3785,7 +3824,7 @@ const AJUDA={
   pollinations:'Era a opção sem cadastro, mas o serviço gratuito foi descontinuado e agora vive fora do ar. Deixado aqui só por garantia — use o Groq.',
   gemini:'⭐ O melhor para o que você quer: escreve cenas longas sem cortar e obedece bem o número de parágrafos. Grátis, sem cartão. Entre em <b>aistudio.google.com/apikey</b> com sua conta Google, clique em "Create API key", copie e cole aqui. <b>Atenção:</b> o Google aposenta modelos de tempos em tempos. Se aparecer erro 404 dizendo que o modelo não existe mais, use o botão <b>🔎 Ver os modelos liberados na minha chave</b> logo abaixo.',
   groq:'⚠️ <b>Não recomendado para este jogo.</b> É o mais rápido de todos, mas o plano gratuito limita 6.000 tokens por MINUTO — e uma cena daqui manda mais de 12.000. Uma única jogada já estoura a cota. Use o Gemini, que dá 1.500 chamadas por dia de graça.',
-  openrouter:'Crie conta em <b>openrouter.ai/keys</b>. Os modelos marcados <code>:free</code> não custam nada, mas dão 50 respostas por dia. Os sem <code>:free</code> são pagos.',
+  openrouter:'A chave é <b>do OpenRouter</b>, não da DeepSeek nem da Anthropic — uma só serve para todos os modelos da lista. Pegue em <b>openrouter.ai/keys</b> → <i>Nova Chave</i> e <b>copie na hora</b>: o OpenRouter mostra a chave inteira uma única vez, e depois só exibe ela mascarada. Modelos <code>:free</code> não custam nada mas dão 50 respostas por dia. Os <b>pagos exigem crédito na conta</b>: sem saldo a resposta vem com erro 402. US$ 10 uma única vez dura meses aqui, e ainda sobe o limite dos <code>:free</code> para 1.000 por dia.',
   local:'100% grátis e ilimitado, mas roda só no PC e exige instalar o <b>Ollama</b> (ollama.com) ou o LM Studio. No celular não funciona, e pelo site publicado o navegador costuma bloquear a conexão com o seu PC.',
   custom:'Qualquer endpoint no formato da OpenAI.'
 };
@@ -3835,7 +3874,28 @@ document.getElementById('bTestar').onclick=async ()=>{
     r.innerHTML='<span style="color:var(--hp)">Falhou: '+esc(err.message)+'. Se for modelo local, o navegador bloqueou a conexão.</span>';
   }
 };
-document.getElementById('modeloSel').onchange=e=>{document.getElementById('apiModel').value=e.target.value;};
+document.getElementById('modeloSel').onchange=e=>{
+  const m=e.target.value;
+  document.getElementById('apiModel').value=m;
+  aplicarPreco(m);
+};
+/** preenche o medidor de gasto com o preço do modelo escolhido */
+function aplicarPreco(m){
+  const p=PRECOS[m];
+  const pi=document.getElementById('precoIn'), po=document.getElementById('precoOut'),
+        pl=document.getElementById('plano');
+  if(p){
+    localStorage.setItem(PREFIX+':pin', String(p[0]));
+    localStorage.setItem(PREFIX+':pout',String(p[1]));
+    if(pi) pi.value=p[0]; if(po) po.value=p[1];
+  }
+  const pago = !!p && !/:free$/.test(m);
+  if(pago){ localStorage.setItem(PREFIX+':plano','pago'); if(pl) pl.value='pago'; }
+  else if(/:free$/.test(m)){ localStorage.setItem(PREFIX+':plano','openrouter'); if(pl) pl.value='openrouter';
+    localStorage.setItem(PREFIX+':pin','0'); localStorage.setItem(PREFIX+':pout','0');
+    if(pi) pi.value=''; if(po) po.value=''; }
+  painelUso();
+}
 document.getElementById('genero').onchange=e=>{
   Save.d.genero=e.target.value; Save.gravar(); painelFicha();
 };
@@ -4129,6 +4189,8 @@ document.getElementById('apiModel').value=c0.model;
 document.getElementById('apiKey').value=c0.key;
 document.getElementById('tam').value=String(c0.tam);
 document.getElementById('mem').value=String(c0.mem);
+/* medidor de gasto já nasce calibrado para o modelo escolhido */
+if(!localStorage.getItem(PREFIX+':pin')) aplicarPreco(c0.model);
 document.getElementById('sysmodo').value=String(sysModo());
 document.getElementById('strm').value=(localStorage.getItem(PREFIX+':stream')==='0'?'0':'1');
 (function(){ const bk=lerReserva(); if(!bk) return;
@@ -4144,5 +4206,5 @@ atualizarMotor();
 barraCena(false);
 if(!temIA()) avisoSemChave();
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a42469c96d8a0ad0',t:'MTc5MDYxNTk2OA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a424ae77ea6a311f',t:'MTc5MDYxODc4MQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
