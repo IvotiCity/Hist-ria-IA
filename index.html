@@ -6,6 +6,7 @@
 <meta name="theme-color" content="#0d0b14">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d0b14'/%3E%3Ctext x='16' y='23' font-size='19' text-anchor='middle'%3E%F0%9F%90%89%3C/text%3E%3C/svg%3E">
 <title>Renascido em Valdrath</title>
 <style>
   :root{
@@ -121,6 +122,16 @@
   .icb.novo::after{content:'';position:absolute;top:-2px;right:-2px;width:9px;height:9px;
     border-radius:50%;background:var(--hp);border:1.5px solid var(--bg);animation:pulso 1.8s ease-out infinite}
 
+  /* refazer / continuar a cena */
+  #cenaAcoes{display:none;gap:7px;padding:7px 12px 0;flex-wrap:wrap}
+  #cenaAcoes.on{display:flex}
+  #cenaAcoes button{font-size:12px;padding:6px 12px;border-radius:16px;cursor:pointer;
+    background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--dim)}
+  #cenaAcoes button:hover{background:rgba(255,255,255,.1);color:var(--txt)}
+  #cenaAcoes button.urg{border-color:var(--ouro);color:var(--ouro);
+    background:rgba(255,205,120,.08);font-weight:600}
+  #cenaAcoes button:disabled{opacity:.4;cursor:default}
+
   /* código de transferência */
   .codigo{margin-top:11px;padding:13px;text-align:center;border-radius:11px;
     background:rgba(127,90,240,.12);border:1px solid #4a3a7a}
@@ -186,6 +197,8 @@
   .item .ic{width:34px;height:34px;flex:none;border-radius:9px;display:grid;place-items:center;
     background:#120f1d;border:1px solid var(--line);font-size:17px}
   .item .nm{flex:1;font-size:14.5px}
+  .item .qt{flex:none;font-size:13px;font-weight:700;color:var(--ouro);
+    background:rgba(245,199,110,.12);border:1px solid #6d5628;border-radius:7px;padding:2px 8px}
   .vazio{color:var(--dim);font-size:13.5px;text-align:center;padding:18px 0}
 
   /* ---- MAPA ---- */
@@ -207,10 +220,10 @@
     0%{box-shadow:0 0 0 0 rgba(255,77,106,.75)}
     70%{box-shadow:0 0 0 16px rgba(255,77,106,0)}
     100%{box-shadow:0 0 0 0 rgba(255,77,106,0)}}
-  .escBar{position:absolute;left:3%;bottom:9px;z-index:6;width:20%;pointer-events:none}
+  .escBar{position:absolute;left:3%;bottom:9px;z-index:6;width:20%;max-width:calc(100% - 26px);pointer-events:none}
   .escBar .rg{display:block;height:5px;width:100%;border:1px solid #2b1d07;border-top:0;
     background:linear-gradient(90deg,#2b1d07 0 25%,transparent 25% 50%,#2b1d07 50% 75%,transparent 75%)}
-  .escBar span{display:block;font-size:9px;color:#2b1d07;font-weight:700;text-align:center;margin-top:2px;
+  .escBar span{display:block;width:max-content;max-width:none;font-size:9px;color:#2b1d07;font-weight:700;text-align:left;margin-top:2px;
     background:rgba(246,233,204,.9);border-radius:3px;padding:1px 3px;white-space:nowrap}
   .mapNota{font-size:12px;color:var(--dim);line-height:1.55;margin:9px 2px 0}
   .mapNota b{color:var(--ouro)}
@@ -272,17 +285,41 @@
   .npc .id{font-size:11.5px;color:var(--dim);font-weight:400}
   .bar{height:6px;background:#120f1d;border-radius:99px;overflow:hidden;margin-top:9px}
   .bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .6s}
-  .lbl{display:flex;justify-content:space-between;font-size:11.5px;color:var(--dim);margin-top:4px}
+  .lbl{display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+    font-size:11.5px;color:var(--dim);margin-top:4px}
+  /* o valor da direita nunca quebra dentro do rótulo da esquerda */
+  .lbl>span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lbl>span:last-child{flex:none;white-space:nowrap}
   .sobre{font-size:13px;color:var(--dim);margin:9px 0 0}
   .memo{font-size:13px;color:var(--dim);border-left:2px solid var(--line);padding-left:11px;margin:7px 0}
 
+  /* ---- bestiário ---- */
+  .tag{display:inline-block;font-size:10.5px;letter-spacing:.4px;border-radius:5px;
+    padding:2px 7px;border:1px solid var(--line);background:#181327;color:var(--dim);margin-right:5px}
+  .tag.bad{color:#ff8496;border-color:#7a3a4a;background:rgba(255,77,106,.13)}
+  .tag.ok{color:#6fe0a8;border-color:#2f6a52;background:rgba(111,224,168,.12)}
+  .tag.go{color:var(--ouro);border-color:#6d5628;background:rgba(245,199,110,.12)}
+  .pips{letter-spacing:2px;font-size:12px;color:#ff8496}
+  .pips i{color:#3c3454;font-style:normal}
+  .rcard{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:11px 13px;margin-bottom:9px}
+  .rcard h5{margin:0 0 6px;font-size:14px;font-weight:600;display:flex;
+    justify-content:space-between;align-items:center;gap:8px}
+  .rcard .sobre{margin:7px 0 0}
+  .nota{font-size:11.5px;color:var(--dim);border-left:2px solid var(--line);
+    padding-left:9px;margin-top:6px}
+
+
   label.f{display:block;font-size:12.5px;color:var(--dim);margin:13px 0 5px}
-  input.f,select.f{width:100%;font:inherit;font-size:15px;color:var(--txt);background:#120f1d;
+  input.f,select.f{width:100%;max-width:100%;min-width:0;box-sizing:border-box;
+    text-overflow:ellipsis;font:inherit;font-size:15px;color:var(--txt);background:#120f1d;
     border:1px solid var(--line);border-radius:11px;padding:11px 12px}
   .btn{cursor:pointer;font:inherit;font-weight:600;color:#161022;border:0;border-radius:12px;
     padding:12px 15px;width:100%;background:linear-gradient(135deg,var(--accent),var(--accent2))}
   .btn.g{background:transparent;color:var(--txt);border:1px solid var(--line);font-weight:500}
-  .row{display:flex;gap:9px}.row .btn{flex:1}
+  .row{display:flex;gap:9px;flex-wrap:wrap}.row .btn{flex:1}
+  /* campos lado a lado encolhem junto em vez de esticar a linha */
+  .row input,.row select{flex:1 1 0;min-width:0}
   .aviso{background:#2a1f1a;border:1px solid #5a3f2a;color:#ffd7ae;font-size:12.5px;
     border-radius:11px;padding:11px 13px;margin-top:12px;line-height:1.55}
   .dica{font-size:12.5px;color:var(--dim);line-height:1.55;margin:9px 0 0}
@@ -301,6 +338,7 @@
     <button class="icb" id="bMochila" title="Mochila">🎒</button>
     <button class="icb" id="bMapa" title="Mapa">🧭</button>
     <button class="icb" id="bMundo" title="Mundo">🗺️</button>
+    <button class="icb" id="bBestia" title="Dom, relíquias e bestiário">🐉</button>
     <button class="icb" id="bConf" title="Ajustes">⚙️</button>
   </div>
   <div class="barras">
@@ -315,6 +353,7 @@
 <div id="cond"></div>
 <div id="missao"></div>
 <div id="log"></div>
+<div id="cenaAcoes"></div>
 <div id="dicas"></div>
 
 <div id="barra">
@@ -368,10 +407,33 @@
   <div class="corpo">
     <h4 class="t">Sua reputação</h4>
     <div class="pcard" id="listaRep"></div>
+    <h4 class="t">Seu domínio</h4>
+    <div class="pcard" id="boxDominio"></div>
+    <h4 class="t">Sua casa</h4>
+    <div class="pcard" id="boxCasa"></div>
     <h4 class="t">Pessoas que você conheceu</h4>
     <div id="listaNpc"></div>
     <h4 class="t">Crônica</h4>
     <div id="memoria"></div>
+  </div>
+</aside>
+
+
+<aside class="painel" id="pBestia">
+  <header><h2>Dom &amp; Bestiário</h2><button class="icb" data-fechar>×</button></header>
+  <div class="corpo">
+    <h4 class="t">Seu dom adormecido</h4>
+    <div class="pcard" id="boxDom"></div>
+    <h4 class="t">Oficina e tecnologia</h4>
+    <div class="pcard" id="boxTec"></div>
+    <h4 class="t">Relíquias e itens de poder</h4>
+    <div id="boxReliq"></div>
+    <h4 class="t">Criaturas que você encontrou</h4>
+    <div id="boxBestia"></div>
+    <h4 class="t">Povos de Valdrath</h4>
+    <div id="boxRacas"></div>
+    <h4 class="t">Lendas conhecidas por todos</h4>
+    <div id="boxLendas"></div>
   </div>
 </aside>
 
@@ -390,7 +452,7 @@
       <label class="f">Serviço</label>
       <select class="f" id="preset">
         <option value="gemini">⭐ Google AI Studio — grátis, melhor para cenas longas</option>
-        <option value="groq">⚡ Groq — grátis, o mais rápido (cenas menores)</option>
+        <option value="groq">⚠️ Groq — grátis e rápido, mas a cota não cabe uma cena</option>
         <option value="pollinations">⚠️ Pollinations — sem cadastro, mas quase sempre fora do ar</option>
         <option value="openrouter">🆓 OpenRouter — grátis com limite, ou pago sem limite</option>
         <option value="local">🆓 Modelo no seu PC (Ollama / LM Studio)</option>
@@ -415,12 +477,28 @@
         <option value="5200" selected>Longa — 5 a 10 parágrafos com diálogo</option>
         <option value="8000">Capítulo — 8 a 14 parágrafos</option>
       </select>
+      <label class="f">Como a IA deve te tratar</label>
+      <select class="f" id="genero">
+        <option value="m">Masculino — cansado, sozinho, ele</option>
+        <option value="f">Feminino — cansada, sozinha, ela</option>
+        <option value="n">Neutro — sem marca de gênero</option>
+      </select>
+      <div class="dica">Corrige os adjetivos que a IA usa para você. Vale da próxima cena em diante.</div>
+
       <label class="f">Janelas do Sistema no chat</label>
       <select class="f" id="sysmodo">
         <option value="1">▁ Discreto — uma linha só, clicável (padrão)</option>
         <option value="0">🚫 Invisível — nada no chat, só nos botões do topo</option>
         <option value="2">🪟 Completo — a janela inteira, como antes</option>
       </select>
+      <label style="margin-top:9px">Avisos de rotina</label>
+      <select class="f" id="sysrot">
+        <option value="0">Só nos botões do topo (padrão)</option>
+        <option value="1">Mostrar também no chat</option>
+      </select>
+      <div class="dica" style="margin-bottom:9px">Rotina é sinal do dom, rumor ouvido, tentativa que
+      falhou. Marco é relíquia achada, lenda domada, alforria, terra, degrau de oficina — esses
+      sempre aparecem. <b>Nada disso é enviado à IA</b>, então não gasta token nenhum.</div>
       <div class="dica">O chat fica só com a história. Tudo que o Sistema registra continua
       guardado em <b>📊 Status → Registro do Sistema</b>, e o botão pisca quando há novidade.</div>
 
@@ -445,6 +523,21 @@
       <div class="row" style="margin-top:8px">
         <button class="btn g" id="bModelos" style="width:100%">🔎 Ver os modelos liberados na minha chave</button>
       </div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn g" id="bDiag" style="width:100%">🩺 Testar minha conexão agora</button>
+      </div>
+      <div id="diagRes" class="dica"></div>
+
+      <label class="f">Conexão</label>
+      <select class="f" id="strm">
+        <option value="1">Streaming ligado — texto aparece enquanto é escrito</option>
+        <option value="0">Streaming desligado — para 4G fraco e Wi-Fi instável</option>
+      </select>
+      <div class="dica">Com streaming, o texto chega aos pedaços; algumas operadoras de celular
+      seguram esse tipo de conexão e a tela fica parada. Desligando, o jogo espera a cena inteira
+      e mostra de uma vez — <b>demora mais para aparecer, mas falha bem menos no 4G</b>.
+      O jogo também desliga sozinho depois de duas falhas seguidas.</div>
+      <div id="errosBox"></div>
       <div class="dica">As cotas grátis mudam de tempos em tempos e o Google não publica mais os
       números numa tabela fixa — cada conta vê os seus em <b>aistudio.google.com/rate-limit</b>.
       Se der erro 429, troque de modelo aqui: <b>cada modelo tem cota própria</b>.</div>
@@ -455,6 +548,30 @@
     </div>
 
     <div class="pcard">
+      <h4 class="t">Serviço reserva (recomendado)</h4>
+      <div class="dica" style="margin-top:0">Quando o serviço principal cai (erro 503) ou a cota
+      do dia acaba (erro 429), o jogo <b>troca sozinho para este aqui</b> e a cena continua.
+      Use um provedor diferente do principal — se o principal é o Google, ponha o Groq aqui.</div>
+
+      <label class="f">Serviço</label>
+      <select class="f" id="bkPreset">
+        <option value="">— nenhum (desligado) —</option>
+        <option value="groq">⚡ Groq</option>
+        <option value="gemini">⭐ Google AI Studio</option>
+        <option value="openrouter">🆓 OpenRouter</option>
+      </select>
+      <label class="f">Modelo</label>
+      <input class="f" id="bkModel" placeholder="openai/gpt-oss-120b">
+      <label class="f">Chave do reserva</label>
+      <input class="f" id="bkKey" type="password" placeholder="cole a chave desse serviço" autocomplete="off">
+      <div class="row" style="margin-top:12px">
+        <button class="btn" id="bBkSalvar">Salvar reserva</button>
+        <button class="btn g" id="bBkTestar">Testar</button>
+      </div>
+      <div id="bkRes" class="dica"></div>
+    </div>
+
+    <div class="pcard">
       <h4 class="t">Consumo de hoje</h4>
       <div id="usoBox"></div>
       <div class="dica">Contagem estimada, feita aqui no seu aparelho (o número exato aparece no
@@ -462,6 +579,25 @@
       chamada quando a cena vem cortada no meio, mais uma na criação do personagem.
       A conta que pesa não é o que você digita: é o <b>histórico</b> que vai junto para a IA
       lembrar de tudo.</div>
+      <div id="cotaBox" style="border-top:1px solid var(--line);margin-top:11px;padding-top:11px"></div>
+
+      <label style="margin-top:11px">Meu plano</label>
+      <select class="f" id="plano">
+        <option value="auto">Detectar pelo endereço da API</option>
+        <option value="gemini">Gemini — AI Studio grátis (1.500/dia)</option>
+        <option value="groq">Groq — grátis</option>
+        <option value="openrouter">OpenRouter — modelos :free (50/dia)</option>
+        <option value="pago">Pago / OpenRouter com crédito — sem teto</option>
+        <option value="local">Local (Ollama) — sem teto</option>
+      </select>
+
+      <label style="margin-top:9px">Preço do modelo, em US$ por milhão de tokens
+        <span style="color:var(--dim);font-weight:400">(deixe 0 se for grátis)</span></label>
+      <div class="row">
+        <input class="f" id="precoIn" type="number" step="0.001" min="0" inputmode="decimal" placeholder="entrada  ex: 0.15">
+        <input class="f" id="precoOut" type="number" step="0.001" min="0" inputmode="decimal" placeholder="saída  ex: 0.60">
+      </div>
+
       <div class="row" style="margin-top:10px">
         <button class="btn g" id="bZerarUso" style="width:100%">Zerar contagem</button>
       </div>
@@ -579,6 +715,412 @@ const REGIOES={
     d:'As águas a oeste, onde as correntes brigam e a serpente aparece. Quase nenhum navio tenta a travessia sem escolta.'}
 };
 
+/* ==========================================================
+   POVOS DE VALDRATH
+   postura: hostil | predador | arredio | ambiguo | civil
+   perigo:  1 trivial · 2 perigoso em bando · 3 sério · 4 raro vencer · 5 lendário
+   ========================================================== */
+const POSTURA={
+  hostil:  {r:'Hostil',     c:'bad', d:'Ataca gente por regra. Trégua existe, mas é exceção e custa caro.'},
+  predador:{r:'Predatória', c:'bad', d:'Não é má — é bicho. Caça, defende a cria, obedece à fome e ao território.'},
+  arredio: {r:'Arredia',    c:'dim', d:'Não ataca sem motivo, mas não te quer por perto. Hospitalidade se conquista.'},
+  ambiguo: {r:'Ambígua',    c:'dim', d:'Depende do clã, do preço e do dia. Pode virar dos dois lados.'},
+  civil:   {r:'Civilizada', c:'ok',  d:'Negocia, julga e cobra. O perigo aqui é político, não de garra.'}
+};
+const RACAS={
+  humanos:{n:'Humanos',po:'civil',pg:2,reg:['pontelume','treveris','portosal'],
+    d:'Maioria da ilha. Vivem pouco, constroem rápido, brigam entre si. Guarda, guilda, clero e nobreza — cada uma cobra sua taxa.',
+    q:'Dívida, contrato, milícia, intriga de guilda.'},
+  elfos:{n:'Elfos de Ossobranco',po:'arredio',pg:3,reg:['ossobranco'],
+    d:'Vivem nas copas há tanto tempo que consideram os humanos um acontecimento recente. Arqueiros. Não matam por prazer, matam por precedente: deixar um forasteiro entrar abre caminho para cem.',
+    q:'Pedir passagem, devolver algo roubado da mata, servir de testemunha num julgamento élfico.'},
+  meioelfos:{n:'Meio-elfos',po:'civil',pg:2,reg:['pontelume','ossobranco','portosal'],
+    d:'Não pertencem à mata nem à cidade. Toleradas nas duas, aceitas em nenhuma. Costumam virar intérpretes, batedores ou contrabandistas — quem transita entre mundos vira ponte.',
+    q:'Guia barato e ressentido. O melhor informante que você vai achar.'},
+  anoes:{n:'Anões de Durgaz',po:'civil',pg:3,reg:['durgaz'],
+    d:'Fazem o melhor aço da ilha e vendem para os dois lados de qualquer guerra. Palavra dada vale mais que sangue; dívida não paga é a única ofensa que os faz sair da montanha.',
+    q:'Contrato de escolta, recuperar um andar de mina tomado, cobrar um caloteiro.'},
+  goblins:{n:'Goblins de Mirelo',po:'hostil',pg:2,reg:['mirelo','uivante'],
+    d:'Pequenos, covardes sozinhos, letais em número. Assaltam estrada e vilarejo de borda, incendeiam o que não carregam e levam gente viva — para trabalho forçado nas ilhotas e para resgate em moeda. Dezenas de clãs em guerra entre si, e é aí que mora a brecha: inimigo do seu inimigo tem preço.',
+    q:'RESGATE de aldeões levados, caravana emboscada, aliança suja com um clã contra outro.'},
+  hobgoblins:{n:'Hobgoblins',po:'hostil',pg:4,reg:['mirelo'],
+    d:'A cabeça dentro do clã goblin: maiores, disciplinados, com armadura roubada e noção de tática. Onde há hobgoblin, o bando não foge quando apanha — cerca.',
+    q:'Matar o chefe dispersa o clã inteiro. Mas cria vácuo, e outro ocupa.'},
+  kobolds:{n:'Kobolds',po:'ambiguo',pg:1,reg:['kaldrun','durgaz'],
+    d:'Servos e bajuladores de dragão. Armam armadilha bem e lutam mal. Trocam de lado na hora em que o lado forte muda, e não acham isso vergonha nenhuma.',
+    q:'Informante barato sobre o ninho. Vendem o senhor deles por comida boa.'},
+  trolls:{n:'Trolls',po:'hostil',pg:5,reg:['uivante','kaldrun','mirelo'],
+    d:'Três metros, pele que fecha sozinha. Carne cortada volta em minutos — só fogo e ácido cauterizam e impedem a regeneração. Um troll adulto não se vence no braço: vence-se com preparo, terreno e fogo, ou não se vence.',
+    q:'Ponte com pedágio de carne, aldeia sitiada, empreitada que só aceita quem já matou um.'},
+  ogros:{n:'Ogros',po:'hostil',pg:4,reg:['treveris','uivante'],
+    d:'Burros, enormes e famintos. Servem de músculo para bandidos humanos que sabem alimentá-los. Não regeneram como trolls — só aguentam muito mais pancada do que deveriam.',
+    q:'Aríete vivo de um bando de salteadores.'},
+  yetis:{n:'Yetis do Uivo Branco',po:'predador',pg:5,reg:['uivobranco'],
+    d:'Não caçam por fome, caçam por território. Silenciosos na neve apesar do tamanho. Ninguém que passou de uma semana na geleira voltou inteiro. Respeitam quem recua — perseguem quem corre.',
+    q:'Resgatar uma expedição sumida, atravessar a geleira sem virar aviso para os outros.'},
+  dragoes:{n:'Dragões de Kaldrun',po:'ambiguo',pg:5,reg:['kaldrun'],
+    d:'Reivindicam cada cume e cobram pedágio nos desfiladeiros — em ouro, em gado ou em gente. São mais velhos e mais inteligentes que qualquer reino da ilha. Falam. Negociam. Guardam rancor por séculos e cumprem o acordo à letra, inclusive a parte que te ferra.',
+    q:'Pagar, servir, roubar do tesouro ou barganhar um favor que vai custar caro depois.'},
+  wyverns:{n:'Wyvernas',po:'predador',pg:3,reg:['kaldrun','uivobranco'],
+    d:'Primas burras dos dragões: duas patas, sem fogo, sem fala, com veneno na cauda. Nidificam em penhasco. Filhote tirado do ninho e criado a carne pode ser domado — e a mãe vai procurar por você.',
+    q:'Montaria. A melhor da ilha, se você sobreviver ao processo.'},
+  lobisomens:{n:'Matilha do Uivante',po:'predador',pg:4,reg:['uivante'],
+    d:'Matilhas grandes demais para serem só lobos, e algumas andam em duas patas nas noites erradas. Cercam, testam, e só entram quando um do grupo se separa. Caçadores locais aprenderam a andar em silêncio ou morreram cedo.',
+    q:'Escoltar por dentro do pinhal. Descobrir qual morador da vila some nas mesmas noites.'},
+  slimes:{n:'Slimes de Mirelo',po:'predador',pg:2,reg:['mirelo','vhar'],
+    d:'Limpam o que sobra no pântano. Ácido: comem couro, corda, madeira e pele, nessa ordem. Perigo 1 quando cabem num balde, 4 quando ocupam um corredor inteiro e você está dentro dele. Não têm o que negociar.',
+    q:'Praga em porão, mina ou cisterna. Trabalho de iniciante que mata iniciante.'},
+  harpias:{n:'Harpias',po:'hostil',pg:3,reg:['portosal','farolmorto','nyr'],
+    d:'Ninham em falésia. Atacam em três, do sol. Imitam voz humana bem o bastante para chamar você pelo nome de alguém que morreu — e é assim que pegam a maioria.',
+    q:'Naufrágio provocado, criança levada do quintal à beira-mar.'},
+  afogados:{n:'Afogados de Nyr',po:'hostil',pg:4,reg:['nyr','farolmorto','marpartido'],
+    d:'O que restou dos fiéis do templo submerso. Não respiram, não apodrecem, não param. Saem do mar nas marés que não deviam existir, andam até achar alguém e voltam. Fogo funciona. Correr também, se houver terra alta.',
+    q:'Descobrir o que os chama. Não é fome.'},
+  fenda:{n:'Coisas do Abismo',po:'hostil',pg:5,reg:['vhar','selo'],
+    d:'Sobem de Vhar à noite e é por isso que Pontelume tem mais soldados que padeiros. Não têm forma fixa nem duas iguais. Não negociam, não recuam, não têm motivo que você possa entender. Cada rachadura nova no Selo do Nono Rei manda uma pior.',
+    q:'Segurar a borda. Descobrir o que o Selo prende. Nenhuma das duas acaba bem.'},
+  compasso:{n:'Ordem do Compasso',po:'ambiguo',pg:4,reg:['selo','pontelume','durgaz'],
+    d:'Humanos, e mais perigosos que a maioria dos monstros. Vigiam toda magia da ilha: registram, licenciam, confiscam e queimam. Mantêm acampamento permanente no Selo. Dom não declarado é crime — e eles têm gente treinada para sentir um.',
+    q:'Se você despertar poder em público, eles ficam sabendo. Aliar-se custa liberdade; fugir custa o resto.'}
+};
+
+/* ==========================================================
+   LENDAS — criaturas únicas, com nome próprio.
+   dom:true = domável/aliável em tese, sempre a um preço alto.
+   ========================================================== */
+const LENDAS={
+  ysra:{n:'Ysra Casca-de-Gelo',reg:'kaldrun',pg:5,dom:false,
+    d:'Dragoa anciã do cume mais alto de Kaldrun. Cega de um olho por uma lança anã que ainda está lá dentro, e ela não deixa ninguém tirar.',
+    s:'Kobolds fogem morro abaixo dias antes de ela acordar. O pedágio dos desfiladeiros dobra.',
+    p:'Não se mata e não se doma. Se negocia. Ela concede um favor por um serviço — e cobra exatamente o combinado.'},
+  gurm:{n:'Gurm, o Que Não Morre',reg:'uivante',pg:5,dom:false,
+    d:'Troll-rei do Bosque Uivante. Já foi morto quatro vezes e enterrado três. Cobra pedágio de carne na ponte velha e sabe contar.',
+    s:'Uma ponte de pedra com ossos limpos empilhados nas duas cabeceiras, e ninguém da região usa aquele atalho.',
+    p:'Fogo. Muito fogo, e alguém segurando as mãos dele enquanto queima. Ninguém faz isso sozinho.'},
+  maepantano:{n:'A Mãe do Pântano',reg:'mirelo',pg:5,dom:false,
+    d:'Slime do tamanho de uma ilhota. Os clãs goblins jogam prisioneiros nela e chamam isso de imposto. Dentro do corpo dela há trezentos anos de metal não digerido.',
+    s:'Uma ilhota que mudou de lugar desde o último mapa. Névoa que cheira a vinagre.',
+    p:'Tesouro de verdade lá dentro. Frio e intacto, porque ela não digere aço.'},
+  cervo:{n:'O Cervo Branco',reg:'ossobranco',pg:1,dom:false,
+    d:'Não tem garra, não tem presa, não foge. Os elfos matam quem tenta matá-lo — é a única lei deles que não tem julgamento antes.',
+    s:'Uma clareira sem uma folha no chão, e ele parado no meio olhando para você primeiro.',
+    p:'Seguir, não caçar. Quem segue até o fim chega num lugar que não está em mapa nenhum.'},
+  fenrath:{n:'Fenrath, o Preto',reg:'uivante',pg:4,dom:true,
+    d:'O macho alfa da maior matilha do pinhal. Do tamanho de um cavalo, com uma armadilha de aço ainda presa na pata traseira que ninguém teve coragem de tirar.',
+    s:'Uivo único, mais grave, que faz o resto da matilha calar.',
+    p:'DOMÁVEL — por uma via só: tirar a armadilha sem morrer. Meses de aproximação, carne toda semana, e uma noite em que você não corre.'},
+  grifo:{n:'Grifo-de-crina-cinza',reg:'kaldrun',pg:4,dom:true,
+    d:'Nidifica nos desfiladeiros de pedágio. Odeia dragão, e essa é a melhor coisa que você tem a oferecer a um.',
+    s:'Penas cinzentas grandes demais na trilha e um cheiro de ninho no vento.',
+    p:'DOMÁVEL — filhote, ou adulto ferido que você tratou. Vínculo de vida: aceita um cavaleiro só e enlouquece se você morrer.'},
+  nagalh:{n:'Nagalh, a Serpente do Mar Partido',reg:'marpartido',pg:5,dom:false,
+    d:'As correntes a oeste brigam entre si porque ela passa por baixo. Quase nenhum navio tenta a travessia sem escolta, e escolta não adianta.',
+    s:'Mar liso demais num dia de vento. Pássaro nenhum.',
+    p:'Ninguém a matou. Dois capitães dizem tê-la alimentado e passado.'},
+  farol:{n:'O Que Acende o Farol',reg:'farolmorto',pg:5,dom:false,
+    d:'A luz acende sozinha em certas noites, e barco que segue a luz não volta. Ninguém subiu a escada do farol e desceu depois.',
+    s:'Luz onde não há lamparina, óleo nem gente há quarenta anos.',
+    p:'Desconhecido. A ilha inteira tem 40 km² e ainda assim ninguém achou o corpo de nenhum dos que subiram.'},
+  coral:{n:'O Sacerdote de Coral',reg:'nyr',pg:5,dom:false,
+    d:'Comanda os Afogados. Só aparece quando a maré baixa o que não devia, e as colunas do templo saem inteiras da água.',
+    s:'Maré baixa fora de hora. Os afogados param todos ao mesmo tempo e viram a cabeça na mesma direção.',
+    p:'Ele quer alguma coisa em terra. Ninguém descobriu o quê e continuou vivo para contar.'},
+  paidaneve:{n:'O Pai da Neve',reg:'uivobranco',pg:5,dom:false,
+    d:'Yeti branco de sete metros. Os outros yetis desviam do território dele — e yeti não desvia de nada.',
+    s:'Pegadas sem cria ao lado. Uma caverna de yeti vazia e limpa.',
+    p:'Nunca foi caçado. Duas expedições subiram atrás; a segunda foi procurar a primeira.'},
+  vharkhal:{n:'O Que Sobe na Terceira Noite',reg:'vhar',pg:5,dom:false,
+    d:'A cada três noites alguma coisa sobe o paredão do Abismo até a altura dos postos de vigia, olha, e desce. Os sete postos registram a mesma hora. Nunca atacou.',
+    s:'Os cães de Pontelume calam todos juntos. A guarda dobra sem explicar por quê.',
+    p:'Ela está medindo alguma coisa. Está subindo mais alto a cada estação, junto com as rachaduras do Selo.'}
+};
+
+/* ==========================================================
+   RELÍQUIAS — quatro degraus. Do degrau 2 para cima, todo poder cobra.
+   ========================================================== */
+const RELIQ=[
+  {n:'Achado',   c:'dim',d:'Bom, raro, bem-feito. Nenhum poder. Vale dinheiro e é só isso.'},
+  {n:'Encantado',c:'ok', d:'Um efeito pequeno e específico, que gasta algo: carga, sangue, luz do dia, uma memória boba.'},
+  {n:'Relíquia', c:'go', d:'Poder de verdade, com preço permanente gravado em você. O preço nunca é dinheiro.'},
+  {n:'Regalia',  c:'bad',d:'Muda o mapa político da ilha. Tem dono anterior, e o dono anterior mandou alguém buscar.'}
+];
+
+/* ==========================================================
+   DOM ADORMECIDO — 0 a 100. Ninguém nasce com poder pronto aqui.
+   ========================================================== */
+const DOM_FASES=[
+  {v:0,  n:'Adormecido',      c:'dim',d:'Nada ainda. Nem você sabe que existe.'},
+  {v:10, n:'Primeiros sinais',c:'dim',d:'Coisas pequenas e negáveis. Você culpa o cansaço.'},
+  {v:25, n:'Faísca',          c:'ok', d:'Funciona. Às vezes. Nunca na hora que você pede.'},
+  {v:50, n:'Controle bruto',  c:'ok', d:'Você consegue chamar. Ainda machuca e ainda vaza.'},
+  {v:75, n:'Domínio',         c:'go', d:'Você usa quando quer, do jeito que quer. O custo virou rotina.'},
+  {v:100,n:'Pleno',           c:'go', d:'A marca no antebraço mudou de desenho. Gente treinada sente você chegar.'}
+];
+const ALIVIO=[
+  {n:'Cru',      c:'bad',d:'Custo cheio. Você usa e paga na hora, toda vez.'},
+  {n:'Calejado', c:'dim',d:'O corpo se acostumou. O custo caiu para um incômodo que dá para trabalhar em cima.'},
+  {n:'Ancorado', c:'ok', d:'O preço não é mais pago por você — é pago pela âncora. Enquanto ela aguentar.'},
+  {n:'Selado',   c:'go', d:'Custo quase zero no dia a dia. Não sumiu: virou parcela, e a parcela tem credor.'}
+];
+/* ==========================================================
+   DOMÍNIO — terra e fortaleza. Degraus caros de propósito.
+   ========================================================== */
+const FORTE=[
+  {n:'Nenhuma obra',       c:'',   moeda:0,    dias:0,   bracos:0,  d:'Você tem a terra, não tem pedra em pé nela.'},
+  {n:'Paliçada',           c:'dim',moeda:150,  dias:20,  bracos:10, d:'Estacas, vala e um portão. Segura bandido e goblin, não segura exército.'},
+  {n:'Casa-forte',         c:'dim',moeda:600,  dias:60,  bracos:30, d:'Pedra, dois andares, porta que aguenta aríete pequeno. Já é um lugar no mapa.'},
+  {n:'Torre de menagem',   c:'ok', moeda:2000, dias:150, bracos:80, d:'Uma torre que se vê de longe. A partir daqui você é um problema político.'},
+  {n:'Forte com muralha',  c:'go', moeda:6500, dias:400, bracos:250,d:'Muralha, fosso, guarnição. Precisa de cerco de verdade para cair.'},
+  {n:'Castelo',            c:'go', moeda:20000,dias:1000,bracos:800,d:'Some da lista de alvos fáceis e entra na lista de alvos que valem uma guerra.'}
+];
+/* ==========================================================
+   ACHADOS — o que o chão de cada região devolve para quem olha.
+   Serve para o achado ter cara de lugar, não de sorteio genérico.
+   ========================================================== */
+const ACHADOS={
+  pontelume: ['bolsa cortada largada num beco depois do corte','tijolo solto na muralha com moeda velha atrás',
+              'carta que caiu do alforje de um mensageiro','ferramenta boa esquecida numa obra parada'],
+  treveris:  ['pote enterrado na divisa de duas roças, escondido de cobrador','arreio e ferradura numa vala',
+              'esconderijo de criança num tronco oco, com moeda e dente de leite','espantalho com algo costurado dentro'],
+  portosal:  ['caixa de naufrágio na maré baixa','anzol e linha boa presos na pedra','carga extraviada com selo de outra cidade',
+              'garrafa lacrada com um papel dentro'],
+  mirelo:    ['ossada de mascate com o que os slimes não digeriram','canoa afundada com fundo falso',
+              'despojo de emboscada goblin, já revirado mas não até o fim','pote de cerâmica lacrado no barro'],
+  uivante:   ['acampamento de caçador abandonado às pressas','armadilha velha com o bicho ainda dentro',
+              'carroça queimada na estrada, com eixo e ferragem aproveitáveis','marco de pedra com nicho escondido'],
+  durgaz:    ['veio pequeno que os anões não acharam que valia a pena','ferramenta anã caída numa fenda',
+              'galeria selada com o material de quem saiu correndo','peso de balança de bronze'],
+  ossobranco:['oferenda élfica num tronco — pegar tem preço','flecha de ponta boa cravada alto',
+              'colmeia velha com favo e cera','ossada antiga com adorno que ninguém reconhece'],
+  kaldrun:   ['migalha do tesouro de dragão caída no desfiladeiro','cadáver de kobold com o que ele roubou',
+              'ninho de grifo com coisa brilhante furtada','cravo e corda de escalada de quem não desceu'],
+  uivobranco:['corpo congelado de expedição, com equipamento intacto','depósito de provisões marcado e esquecido',
+              'coisa antiga que o gelo devolveu ao derreter'],
+  selo:      ['equipamento largado na evacuação, ainda nas casas','registro da Ordem numa gaveta',
+              'lacre de chumbo com marca que ninguém usa mais'],
+  vhar:      ['material da guarnição retirada, empilhado e coberto','coisa que subiu do abismo e não voltou'],
+  nyr:       ['oferenda do templo submerso que a maré trouxe','rede de pescador com mais que peixe',
+              'coral que cresceu em cima de metal trabalhado'],
+  farolmorto:['despensa do faroleiro, intacta há quarenta anos','diário molhado com metade das páginas legíveis',
+              'lente do farol, rachada mas ainda valiosa'],
+  marpartido:['destroço boiando depois da serpente passar','baú preso entre pedras na arrebentação']
+};
+
+/* ==========================================================
+   COLHEITA E CAÇA — isto RENOVA (o saque, não). Sustenta, cura,
+   vira isca de doma, vira matéria-prima de oficina e vira dinheiro
+   quando levado para onde falta.
+   ========================================================== */
+const COLHEITA={
+  treveris:  {c:'lebre, perdiz, javali nas bordas da roça',
+              p:'camomila, alho-do-campo, linho, arruda',
+              o:'mel de colmeia em tronco oco, ovos de ninho, cera',
+              v:'Sobra aqui. Vale em Pontelume e em Durgaz, que não plantam.'},
+  uivante:   {c:'veado, javali grande, lobo (couro bom, carne ruim)',
+              p:'cogumelo-da-sombra, casca de salgueiro para dor, visgo',
+              o:'mel selvagem, resina, chifre, lenha de lei',
+              v:'Couro e chifre valem no mercado de Pontelume.'},
+  mirelo:    {c:'jacaré-do-brejo, enguia, ave-pernalta',
+              p:'junco, sanguinária, cogumelo lívido (veneno), musgo que estanca',
+              o:'SALITRE na crosta das margens secas, sanguessuga de barbeiro, turfa',
+              v:'O salitre é pólvora. Os alquimistas de Pontelume pagam bem e não perguntam.'},
+  ossobranco:{c:'só com licença élfica. Caçar sem ela é o crime que eles punem na hora',
+              p:'folha-prata (febre), raiz-de-lua (sono), líquen antigo',
+              o:'seiva de árvore-osso, favo élfico, pena de coruja-branca',
+              v:'Remédio élfico vale ouro em qualquer cidade humana.'},
+  kaldrun:   {c:'cabra-da-pedra, marmota, wyverna jovem (perigoso)',
+              p:'flor-de-neve das encostas, raiz-fogo',
+              o:'ENXOFRE nas fumarolas, obsidiana, pena de grifo',
+              v:'Enxofre é o outro terço da pólvora. Durgaz compra tudo.'},
+  durgaz:    {c:'morcego-de-mina, cabra nas ombreiras',
+              p:'quase nada cresce. Cogumelo de galeria, comestível e amargo',
+              o:'CARVÃO, minério de segunda, cristal de sal-gema',
+              v:'Carvão sai barato aqui e vale o triplo no litoral.'},
+  portosal:  {c:'peixe, caranguejo, gaivota (desespero)',
+              p:'algas, salicórnia, capim-de-duna',
+              o:'SAL das salinas, âmbar na maré, casca de ostra',
+              v:'Sal conserva carne. Sem ele, o que você caçar apodrece em dois dias.'},
+  uivobranco:{c:'foca, lebre-do-gelo, rena. Yeti caça você',
+              p:'líquen de pedra, quase nada mais',
+              o:'gelo puro, marfim de presa, gordura para lamparina',
+              v:'Marfim é artigo de luxo em Pontelume.'},
+  pontelume: {c:'rato e pombo, e isso diz muito',
+              p:'ervas de horta e de canteiro de convento',
+              o:'sucata, sebo, trapo — tudo tem comprador',
+              v:'Aqui você VENDE. É o melhor mercado da ilha, e o que mais cobra imposto.'},
+  nyr:       {c:'peixe estranho, marisco que ninguém come duas vezes',
+              p:'alga-negra, coral mole',
+              o:'pérola ocasional, madeira de naufrágio',
+              v:'Pérola vale muito. Chegar vivo até o comprador é a parte difícil.'},
+  selo:      {c:'pouca caça. Os bichos evitam a rachadura',
+              p:'erva-cinza que só cresce perto da fenda',
+              o:'pedra-selo lascada, ferro de acampamento abandonado',
+              v:'A Ordem compra a erva-cinza e não explica para quê.'},
+  vhar:      {c:'nada vivo que valha a pena comer',
+              p:'liquen preto no paredão',
+              o:'o que a guarnição deixou',
+              v:'Não se vem aqui por dinheiro.'},
+  farolmorto:{c:'ave marinha, caranguejo',
+              p:'capim-de-duna, alga',
+              o:'óleo de baleia nos tonéis do farol, vidro da lente',
+              v:'O óleo ainda queima. Quarenta anos e ainda queima.'},
+  marpartido:{c:'peixe de fundo, se o barco aguentar',
+              p:'—',
+              o:'destroço, âmbar-cinzento',
+              v:'Âmbar-cinzento é perfume de nobre. Um punhado paga um ano.'}
+};
+
+/* terras que não são de ninguém, e o motivo de estarem vazias */
+const VAZIAS={
+  treveris:  ['Vilarejo de Ordem Queimada — a guerra passou duas vezes; restam fundações, um poço bom e trigo selvagem.',
+              'Fazendas do Rio Manso — a peste levou três famílias; ninguém reclamou a escritura em onze anos.'],
+  uivante:   ['Carvoaria do Talho — os carvoeiros sumiram numa noite. As tulhas e o forno estão de pé.',
+              'Posto de caça de Vern — abandonado quando a matilha cresceu. Paliçada meio podre, adega intacta.'],
+  mirelo:    ['Ilhota do Enforcado — um clã goblin foi extinto por outro e ninguém ocupou desde então.'],
+  durgaz:    ['Galeria 6, veio morto — os anões seguiram o minério para baixo e selaram o andar. Pedra seca, boa.'],
+  pontelume: ['Arrabalde da Corda — queimou num tumulto, a guilda não reconstruiu, os posseiros foram expulsos.'],
+  portosal:  ['Enseada dos Cascos — três estaleiros falidos, rampas de pedra e um armazém sem telhado.'],
+  ossobranco:['Bosque da Cinza Alta — os elfos abandonaram depois de um incêndio e declararam o lugar morto.'],
+  kaldrun:   ['Desfiladeiro do Pedágio Velho — a dragoa mudou de cume e o posto ficou vazio, com muros prontos.'],
+  uivobranco:['Refúgio do Segundo Cume — a expedição não voltou. Cabana de pedra, provisões congeladas.'],
+  selo:      ['Aldeia de Baixo-Selo — evacuada pela Ordem quando a rachadura cresceu. Casas inteiras, portas abertas.'],
+  vhar:      ['Posto de vigia 4 — a guarnição foi retirada depois da terceira noite. Ninguém quis o turno.'],
+  nyr:       ['Ilhota do Sino — o sino ainda está lá. Os pescadores não voltam desde a maré errada.'],
+  farolmorto:['A própria ilha. Quarenta quilômetros quadrados e nenhum dono vivo.'],
+  marpartido:[]
+};
+/* refúgio oculto: mais barato em moeda, caríssimo em trabalho e em sigilo */
+const BUNKER=[
+  {n:'Nenhuma escavação',c:'',   moeda:0,   dias:0,  bracos:0, sig:0,  d:'Você conhece o lugar. É só isso.'},
+  {n:'Abrigo cavado',    c:'dim',moeda:40,  dias:15, bracos:3, sig:-5, d:'Buraco escorado, alçapão coberto de mato. Passa despercebido e alaga quando chove forte.'},
+  {n:'Galeria escorada', c:'dim',moeda:250, dias:50, bracos:12,sig:-12,d:'Túnel com vigas, duas saídas, despensa seca. Já dá para sumir por semanas.'},
+  {n:'Bunker de pedra',  c:'ok', moeda:900, dias:120,bracos:40,sig:-22,d:'Pedra, terra por cima, porta que aguenta fogo. Um cerco passa por cima sem achar.'},
+  {n:'Complexo subterrâneo',c:'go',moeda:3500,dias:350,bracos:150,sig:-35,d:'Oficina, poço, paiol e dormitórios embaixo da terra. Cento e cinquenta pessoas souberam onde fica.'}
+];
+/* ESCADA INDUSTRIAL — o dom de forja não é um botão, é uma cadeia de pré-requisitos */
+const TEC=[
+  {n:'Nenhuma oficina',c:'',moeda:0,dias:0,desp:0,
+   pre:'—', faz:'Nada além do que qualquer ferreiro da aldeia já faz.'},
+  {n:'Oficina',c:'dim',moeda:120,dias:25,desp:10,
+   pre:'Bancada, fole duplo, torno de pé, cadinho, um lugar com telhado.',
+   faz:'Destilaria, sabão, vidro tosco, papel, arco composto, besta melhorada, polia, roldana, serra de água.'},
+  {n:'Química negra',c:'dim',moeda:400,dias:60,desp:25,
+   pre:'Salitre (esterco curtido ou caverna), enxofre (Kaldrun), carvão vegetal. Um alquimista, ou muita paciência.',
+   faz:'Pólvora negra, granada de barro, petardo de porta, morteiro tosco, foguete de sinalização, fogo grego.'},
+  {n:'Metalurgia fina',c:'ok',moeda:1500,dias:140,desp:40,
+   pre:'Aço de cadinho e broca movida a água. Na prática: um acordo com Durgaz, porque só os anões têm o forno.',
+   faz:'Cano furado, mosquete de mecha, canhão leve, mola temperada, placa de peito de aço, capacete moderno.'},
+  {n:'Precisão',c:'ok',moeda:5000,dias:300,desp:60,
+   pre:'Torno mecânico, rosca padronizada, calibre e gabarito. Uma equipe treinada que você formou.',
+   faz:'Alma raiada, retrocarga, peças intercambiáveis, luneta simples, mira graduada.'},
+  {n:'Munição metálica',c:'go',moeda:14000,dias:600,desp:78,
+   pre:'Espoleta de fulminato, latão estirado, prensa. Isso é uma pequena indústria, não uma oficina.',
+   faz:'Cartucho metálico, revólver, fuzil de ferrolho, granada de espoleta.'},
+  {n:'Produção em série',c:'go',moeda:45000,dias:1200,desp:92,
+   pre:'Usinagem repetível, aço-liga, linha de montagem, centenas de operários e uma fonte de força motriz.',
+   faz:'Repetição rápida, semiautomático, munição aos milhares. A partir daqui você mudou a ilha.'}
+];
+const LEGIT={
+  outorgado:  {r:'Outorgado',  c:'ok', d:'Um senhor te deu a terra. É a posse mais segura — e você deve serviço, tributo e lealdade a ele.'},
+  conquistado:{r:'Conquistado',c:'bad',d:'Você tomou. Quem perdeu não esqueceu, e parentes de quem perdeu também não.'},
+  comprado:   {r:'Comprado',   c:'dim',d:'Escritura paga e registrada. Legal, e a vizinhança nobre acha você um arrivista.'},
+  casamento:  {r:'Por casamento',c:'ok',d:'Veio com a união. Se o laço quebrar, a terra fica em disputa.'},
+  vazio:      {r:'Sem título',  c:'bad',d:'Você ocupou terra de ninguém. Vale até alguém com selo aparecer e perguntar quem é você.'}
+};
+/* como cada povo vê união com mais de uma pessoa */
+const UNIAO={
+  pontelume: {l:false,h:-10,d:'Uma só, diante do clero. Uma segunda é concubina: todos sabem, ninguém chama pelo nome, e os filhos não herdam.'},
+  treveris:  {l:false,h:-12,d:'Aldeia e capela. Segunda união vira escândalo e assunto de sermão.'},
+  portosal:  {l:true, h:0,  d:'Casa-se no cais com duas testemunhas. Ninguém confere quantas vezes você já fez isso.'},
+  durgaz:    {l:false,h:-20,d:'Casamento anão é contrato lavrado. Segunda união é quebra de contrato — desonra formal, e dívida.'},
+  ossobranco:{l:true, h:-5, d:'Elfos não formalizam nada. Acham a pressa humana em jurar coisas eternas uma graça, e um pouco patética.'},
+  mirelo:    {l:true, h:0,  d:'Clã goblin não tem essa palavra.'},
+  kaldrun:   {l:true, h:0,  d:'Dragão não pergunta.'},
+  uivante:   {l:true, h:0,  d:'Não há quem registre.'},
+  selo:      {l:false,h:-8, d:'A Ordem prega uma união só, e anota.'},
+  uivobranco:{l:true, h:0,  d:'Não há quem registre.'},
+  vhar:      {l:true, h:0,  d:'Não há quem registre.'},
+  nyr:       {l:true, h:0,  d:'Não há quem registre.'},
+  farolmorto:{l:true, h:0,  d:'Não há quem registre.'},
+  marpartido:{l:true, h:0,  d:'Não há quem registre.'}
+};
+const RELACAO={
+  '':         {r:'',            c:'', peso:0},
+  interesse:  {r:'Interesse',   c:'dim',peso:0},
+  cortejo:    {r:'Cortejando',  c:'ok', peso:0},
+  parceira:   {r:'Parceira(o)', c:'go', peso:1},
+  esposa:     {r:'Esposa/Esposo',c:'go',peso:1}
+};
+/** com quem o jogador tem laço firmado, e a tensão que isso gera */
+function lares(){
+  const N=Save.d.npcs||{}, firmes=[];
+  for(const id in N){ const r=RELACAO[N[id].rel]; if(r&&r.peso) firmes.push(N[id]); }
+  return {firmes:firmes, tensao:Math.max(0,(firmes.length-1)*18)};
+}
+
+/* ==========================================================
+   CASA — gente que depende de você. custo em cobres por dia.
+   ========================================================== */
+const VINCULO={
+  livre:      {r:'Livre',          c:'',   g:0, d:'Não deve nada a você.'},
+  seu_escravo:{r:'Propriedade sua',c:'bad',g:3, d:'Comprada. Por lei é sua. Obediência aqui é medo, não lealdade.'},
+  seu_servo:  {r:'Servo por dívida',c:'dim',g:3,d:'Serve até a dívida fechar. Tem prazo, e ela conta os dias.'},
+  liberto:    {r:'Liberto · ficou', c:'go', g:3,d:'Você alforriou e ela escolheu continuar. Isso vale mais que qualquer contrato.'},
+  assalariado:{r:'Assalariado',     c:'ok', g:8,d:'Trabalha por moeda e pode pedir as contas.'},
+  refem:      {r:'Refém',           c:'bad',g:2,d:'Está aqui por garantia de outra coisa. Não é sua.'}
+};
+/* como cada região trata posse de gente */
+const SERVIDAO={
+  pontelume:  {l:true, h:0,  d:'Legal e comum. Registro na guilda, imposto por cabeça.'},
+  treveris:   {l:true, h:0,  d:'Legal. Metade da colheita sai de mão servil; ninguém comenta.'},
+  portosal:   {l:true, h:0,  d:'Mercado aberto no cais. Ninguém pergunta de onde veio a pessoa.'},
+  mirelo:     {l:true, h:-5, d:'Não há lei nenhuma. Goblin vende gente e compra gente.'},
+  durgaz:     {l:true, h:0,  d:'Só servidão por dívida, com contrato escrito e prazo. Posse vitalícia é crime anão.'},
+  ossobranco: {l:false,h:-25,d:'Abominação. Elfo que descobre um dono humano dentro da mata não discute.'},
+  selo:       {l:false,h:-10,d:'A Ordem do Compasso proíbe nos seus acampamentos. Confisca e liberta.'},
+  uivante:    {l:true, h:-5, d:'Sem lei. Quem tem gente presa no pinhal geralmente é bandido.'},
+  kaldrun:    {l:true, h:0,  d:'Dragão aceita gente como pedágio. É o único comprador que importa.'},
+  uivobranco: {l:true, h:0,  d:'Ninguém mora aqui para ter opinião.'},
+  vhar:       {l:true, h:0,  d:'Ninguém mora aqui para ter opinião.'},
+  nyr:        {l:true, h:0,  d:'Ninguém mora aqui para ter opinião.'},
+  farolmorto: {l:true, h:0,  d:'Ninguém mora aqui para ter opinião.'},
+  marpartido: {l:true, h:0,  d:'Navio negreiro é negócio conhecido no Mar Partido.'}
+};
+/** gente que depende de você + custo diário */
+function casa(){
+  const out=[]; let g=0;
+  const N=Save.d.npcs||{};
+  for(const id in N){ const v=VINCULO[N[id].cond]; if(!v||!v.g) continue;
+    out.push({id:id,n:N[id],v:v}); g+=v.g; }
+  return {lista:out, gasto:g};
+}
+function domFase(v){ let f=DOM_FASES[0]; for(const x of DOM_FASES) if(v>=x.v) f=x; return f; }
+
+/** povos da região atual em detalhe + índice curto do resto (economiza tokens) */
+function tabelaPovos(reg){
+  const aqui=[], fora=[];
+  for(const k in RACAS){ const r=RACAS[k];
+    if(reg && r.reg.includes(reg)) aqui.push(r); else fora.push(r); }
+  let s='';
+  if(aqui.length) s+='POVOS PRESENTES NESTA REGIÃO (use estes, não invente outros):\n'+
+    aqui.map(r=>'- '+r.n+' ['+POSTURA[r.po].r+' · perigo '+r.pg+'/5]: '+r.d+' Ganchos: '+r.q).join('\n')+'\n';
+  if(fora.length) s+='Outros povos da ilha, para referência curta: '+
+    fora.map(r=>r.n+' ('+POSTURA[r.po].r.toLowerCase()+', '+r.pg+'/5)').join(' · ')+'\n';
+  return s;
+}
+/** lendas da região atual + as que o jogador já topou em qualquer lugar */
+function tabelaLendas(reg,vistas){
+  const out=[];
+  for(const k in LENDAS){ const l=LENDAS[k];
+    const conhecida=vistas&&vistas[k];
+    if(l.reg!==reg && !conhecida) continue;
+    out.push('- '+k+' | '+l.n+' (perigo '+l.pg+'/5'+(l.dom?', DOMÁVEL':'')+')'+
+      (conhecida?' [estado atual: '+conhecida.e+']':' [o jogador ainda não a encontrou]')+
+      ': '+l.d+' Como se anuncia: '+l.s+' '+l.p);
+  }
+  return out.length ? 'LENDAS AO ALCANCE\n'+out.join('\n')+'\n' : '';
+}
+
 /* ---------- ESCALA DO MUNDO ----------
    O desenho é um esboço de navegador. A moldura cobre 1.900 km de leste a oeste
    e 2.300 km de norte a sul. Logo: 1% na horizontal = 19 km, 1% na vertical = 23 km. */
@@ -602,6 +1144,57 @@ function vizinhas(id,n){
    Duas medidas por região: FAMA (0-100, o quanto te conhecem) e
    HONRA (-100 a 100, como te veem). Notícia viaja ~70 km por dia. */
 const VEL_NOTICIA=70;
+/* ---------- GÊNERO DO PERSONAGEM ----------
+   Existe para a IA não escrever "desgraçada" para um personagem masculino. */
+function inferirGenero(txt){
+  const t=' '+String(txt||'').toLowerCase()+' ';
+  const forteM=/\b(homem|rapaz|garoto|menino|sargento|soldado|cabo|tenente|capit[aã]o|pai|filho|irm[aã]o|marido|namorado|vi[uú]vo|senhor|cara|sujeito|ele)\b/g;
+  const forteF=/\b(mulher|mo[çc]a|garota|menina|sargenta|soldada|m[aã]e|filha|irm[aã]|esposa|namorada|vi[uú]va|senhora|ela)\b/g;
+  const m=(t.match(forteM)||[]).length, f=(t.match(forteF)||[]).length;
+  if(m>f) return 'm';
+  if(f>m) return 'f';
+  const eu=/\beu (?:era|estava|fui|sou|fiquei|nasci) [a-zà-ú]*([oa])\b/.exec(t);
+  if(eu) return eu[1]==='a' ? 'f' : 'm';
+  return '';
+}
+const GEN={m:'masculino', f:'feminino', n:'neutro'};
+function generoDe(){ return Save.d.genero || 'm'; }
+
+/** ajustes que precisam rodar sempre que um save entra (troca de slot, import, nuvem) */
+function migrarSave(){
+  const d=Save.d;
+  if(!d.genero) d.genero=inferirGenero(d.passado)||'m';
+  if(!d.dom||typeof d.dom!=='object') d.dom={nome:'',desp:0,custo:'',sinais:[]};
+  if(!Array.isArray(d.dom.sinais)) d.dom.sinais=[];
+  ['al','des'].forEach(k=>{ if(typeof d.dom[k]!=='number') d.dom[k]=0; });
+  ['anc','sel','div'].forEach(k=>{ if(typeof d.dom[k]!=='string') d.dom[k]=''; });
+  if(!Array.isArray(d.reliquias)) d.reliquias=[];
+  if(!d.bestia||typeof d.bestia!=='object') d.bestia={};
+  if(typeof d.harmonia!=='number') d.harmonia=70;
+  if(d.dominio && typeof d.dominio==='object'){
+    if(typeof d.dominio.forte!=='number') d.dominio.forte=0;
+    if(!Array.isArray(d.dominio.obras)) d.dominio.obras=[];
+    if(typeof d.dominio.oculto!=='boolean') d.dominio.oculto=false;
+    if(typeof d.dominio.subt!=='boolean') d.dominio.subt=!!d.dominio.oculto;
+    if(typeof d.dominio.sigilo!=='number') d.dominio.sigilo=d.dominio.oculto?100:0;
+  }
+  if(!d.saques||typeof d.saques!=='object') d.saques={};
+  if(!d.tec||typeof d.tec!=='object') d.tec={niv:0,oficina:'',feitos:[]};
+  if(typeof d.tec.niv!=='number') d.tec.niv=0;
+  if(!Array.isArray(d.tec.feitos)) d.tec.feitos=[];
+  /* inventário antigo era ['faca','pão']; vira [{n,q}] somando repetidos */
+  if(Array.isArray(d.itens)){
+    const novo=[];
+    d.itens.forEach(x=>{
+      const p=(x&&typeof x==='object')?{n:String(x.n||x.nome||''),q:Math.max(1,Number(x.q||x.qtd)||1)}:itemParse(x);
+      if(!p||!p.n) return;
+      const k=itemChave(p.n), j=novo.findIndex(o=>itemChave(o.n)===k);
+      if(j>=0) novo[j].q=Math.min(999,novo[j].q+p.q); else novo.push(p);
+    });
+    d.itens=novo;
+  } else d.itens=[];
+  const sel=document.getElementById('genero'); if(sel) sel.value=generoDe();
+}
 function rot0(c){ return {livre:'Livre',escravo:'Escravizado',servo:'Servo',prisioneiro:'Prisioneiro',
   fugitivo:'Fugitivo',refem:'Refém'}[c]||'—'; }
 function repDe(id){ const r=(Save.d.rep||{})[id]; return r?{f:r.f||0,h:r.h||0}:{f:0,h:0}; }
@@ -651,7 +1244,7 @@ function propagarBoatos(){
     'O que você fez levou dias de estrada para chegar até lá — e chegou deformado.');
 }
 
-const REGRAS =
+const R_INI =
 `Você é o Mestre de um RPG de fantasia sombria em português do Brasil, no mundo de Valdrath.
 O jogador morreu na Terra e renasceu aqui com o corpo e a memória intactos. Ele escreve
 livremente o que quer fazer; você narra o resultado.
@@ -668,6 +1261,14 @@ ESTILO
      cada uma numa linha própria no formato Nome — "fala";
   5) uma reviravolta pequena: uma informação nova, um pedido, uma ameaça, um preço;
   6) o fecho, com o mundo em movimento e algo pendente no ar.
+TRATAMENTO DO JOGADOR
+- O gênero do jogador vem no contexto. TODO adjetivo, particípio, pronome e xingamento
+  dirigido a ele concorda com esse gênero, inclusive na boca dos personagens.
+  Personagem masculino: "cansado", "sozinho", "ferido", "desgraçado", "seu louco", "ele".
+  Nunca escreva "desgraçada", "cansada" nem "ela" para um personagem masculino — é erro grave.
+- Chame-o pelo nome dele quando alguém já souber o nome; antes disso, "o forasteiro",
+  "o estrangeiro", sempre no gênero certo.
+
 FORMATO DA CENA — OBRIGATÓRIO
 - Só existem duas coisas no seu texto: NARRAÇÃO (o que acontece ao redor) e FALAS.
 - Toda fala vai numa linha própria, começando pelo nome de quem fala, um travessão e a
@@ -799,6 +1400,186 @@ CONDIÇÃO SOCIAL — ESCRAVIDÃO, SERVIDÃO E PRISÃO
   alguém poderoso, revolta — que pode dar muito errado.
 - Limite firme: servidão aqui é trabalho, luta e serviço doméstico. Nada sexual, em nenhuma
   hipótese, e nenhuma criança em situação de cativeiro na cena.
+`;
+const R_CASA =
+`COMPRAR, LIBERTAR E SUSTENTAR GENTE
+- Servidão por dívida é legal na maior parte de Valdrath, e o jogador PODE comprar uma pessoa.
+  Não trate isso como impossível nem como automaticamente vilania. Trate como o que é: um ato
+  legal, caro, que cria uma pessoa inteira sob responsabilidade dele.
+- Preço realista em coroas, e sempre justificado em voz alta pelo vendedor: 15 a 30 por alguém
+  sem ofício, 40 a 80 por alguém com ofício (ferreiro, escriba, curandeira), mais por quem sabe
+  ler ou falar duas línguas. Menos por quem está doente, e o vendedor vai esconder a doença.
+- GRATIDÃO NÃO É AUTOMÁTICA, E ESSA É A REGRA MAIS IMPORTANTE AQUI. Quem foi comprado começa
+  com afinidade 0 ou negativa e lealdade baixa. Obediência imediata é MEDO, não afeto: ela
+  obedece rápido demais, não olha nos olhos, agradece coisas que não precisavam de agradecimento,
+  espera apanhar quando derruba algo. Escreva isso. Nunca escreva alguém feliz por ter sido
+  comprada.
+- A confiança se constrói devagar e com prova: comida de verdade, não bater, cumprir uma promessa
+  pequena, deixar ela sair sozinha e ela voltar, defendê-la de outro. São SEMANAS de cenas,
+  nunca uma cena só. Suba afinidade de 1 em 1.
+- ALFORRIA é um ato legal e público: carta escrita, uma testemunha, taxa paga ao escrivão. Depois
+  dela a pessoa é livre DE VERDADE — e pode ir embora. Às vezes vai, e isso é o certo, não uma
+  punição ao jogador. Quem fica depois de liberta tem lealdade que vale mais que qualquer outra
+  no jogo. Quem vai embora pode voltar meses depois, por conta própria.
+- Cuidado com o efeito colateral: alguém que depende de você para comer não consegue dizer não.
+  Um pedido seu é uma ordem, mesmo quando você não quis que fosse. Personagens espertos em volta
+  vão apontar isso.
+- TREINAR alguém funciona: leva semanas de cenas, e a pessoa ganha ofício de verdade. Registre no
+  "papel" e no "sobre" dela o que ela aprendeu. Gente treinada tem valor, opinião e outras opções
+  de vida — inclusive a de sair.
+- SUSTENTAR CUSTA. Cada pessoa da casa come, veste e dorme em algum lugar: uns 3 cobres por dia,
+  8 se for assalariada. Cobre isso nas moedas quando passarem dias. Se ele não tiver com que
+  pagar, as pessoas passam fome, adoecem ou vão embora — nessa ordem.
+- Mande o campo "condicao" dentro do npc, com um destes: livre, seu_escravo, seu_servo, liberto,
+  assalariado, refem. Só mande quando mudar.
+- REPUTAÇÃO: em Pontelume, Tréveris e Porto Sal ter servos é banal e não move honra. Em Durgaz
+  só vale contrato com prazo — posse vitalícia é crime anão. Em Ossobranco é abominação e os
+  elfos agem. A Ordem do Compasso liberta nos acampamentos dela. Libertar em público, com
+  testemunha, sobe honra em quase toda parte. O jogo já te manda a regra da região atual.
+- Limite firme, o mesmo de sempre: isso é trabalho, ofício e serviço doméstico. NADA sexual, em
+  nenhuma hipótese, com ninguém, comprada ou não. Nenhuma criança em cativeiro em cena. E não
+  transforme a casa dele num harém: cada pessoa tem nome, agenda própria e vontade de ir embora.
+`;
+const R_TERRA =
+`TERRA, TÍTULO E FORTALEZA — O FIM DE JOGO LONGO
+- Sim, ele pode virar senhor de terras. Não por comprar: por ser alguém que a região não
+  consegue mais ignorar. Isso é o arco mais longo do jogo e não acontece cedo.
+- PORTAS DE ENTRADA, e ele precisa de uma delas de verdade:
+  · OUTORGA — um senhor, uma cidade ou uma guilda dá a terra em troca de serviço prestado.
+    Exige FAMA 45+ e HONRA 40+ naquela região, e alguém poderoso que deva um favor a ele.
+  · CONQUISTA — tomar de quem tinha. Exige força armada de verdade: gente leal, dinheiro e
+    um motivo que sirva de bandeira. Quem perdeu tem parentes.
+  · COMPRA — escritura registrada. Custa caro e a nobreza local trata ele como arrivista.
+  · CASAMENTO — a terra vem no laço, e volta a ficar em disputa se o laço quebrar.
+  · OCUPAÇÃO — terra de ninguém, sem título. Vale até aparecer alguém com selo.
+- Terra vem com GENTE. Camponeses que já moravam ali, que têm nome, safra, medo e opinião
+  sobre o novo dono. Renda vem do trabalho deles, e some quando eles somem.
+- CONSTRUIR É LENTO E CARO, nesta ordem: Paliçada (150 coroas, 20 dias, 10 braços) · Casa-forte
+  (600, 60 dias, 30) · Torre de menagem (2.000, 150 dias, 80) · Forte com muralha (6.500, 400
+  dias, 250) · Castelo (20.000, 1.000 dias, 800). Nunca pule degraus. Obra grande precisa de
+  pedreiro, pedra, madeira e comida para os trabalhadores — e cada um desses é uma cena.
+- Ter domínio ATRAI PROBLEMA, e é para isso que ele serve: vizinho que testa a fronteira,
+  cobrador de tributo, bandido que vê celeiro cheio, um dos povos hostis que estava quieto.
+  Traga um problema de domínio a cada punhado de cenas, mesmo quando ele estiver longe.
+- Mande "dominio":{"nome":"","tipo":"outorgado|conquistado|comprado|casamento|vazio","povo":0,
+  "forte":0,"renda":0,"obra":"","ameaca":""} só quando algo mudar de fato.
+`;
+const R_VAZIO =
+`TERRA DE NINGUÉM E REFÚGIO OCULTO
+- Valdrath está cheia de lugar abandonado: guerra passou, peste levou, a rachadura cresceu, o
+  clã foi extinto, a expedição não voltou. O jogo te manda os lugares vazios da região atual.
+  Use esses, com esses nomes e esses motivos, em vez de inventar do zero.
+- Ocupar terra vazia NÃO exige fama nenhuma. É a única porta de domínio aberta a um ninguém, e
+  é por isso que ela existe. Mande "dominio" com "tipo":"vazio".
+- Terra vazia está vazia POR UM MOTIVO, e o motivo continua lá. O poço envenenado, o que comeu
+  os carvoeiros, a rachadura que cresce, o clã que vai voltar, a família que ainda tem a
+  escritura numa gaveta em Pontelume. Revele isso depois que ele já tiver investido trabalho.
+- REFÚGIO OCULTO é outra coisa que domínio político: mande "oculto":true. Não tem gente, não
+  tem renda, não paga tributo, e ninguém vem cobrar — porque ninguém sabe que existe.
+- O que ele tem é SIGILO, de 0 a 100, e o sigilo só desce. Desce quando ele leva alguém lá,
+  quando contrata braços para cavar, quando compra material demais na mesma vila, quando é
+  seguido, quando alguém fala numa taverna. Mande "sigilo" como variação NEGATIVA.
+- Escavação oculta: Abrigo cavado (40 coroas, 15 dias, 3 braços) · Galeria escorada (250, 50,
+  12) · Bunker de pedra (900, 120, 40) · Complexo subterrâneo (3.500, 350, 150). Cada degrau
+  derruba o sigilo sozinho, porque obra grande precisa de gente, e gente fala.
+- Sigilo baixo não é derrota imediata: é um rastro. Primeiro aparece um caçador curioso, depois
+  um mapa errado numa taverna, depois alguém com selo. Quando chegar a zero, o lugar foi achado.
+`;
+const R_TEC =
+`A MÃO QUE LEMBRA — TRAZER TECNOLOGIA DA TERRA
+- Se o dom dele for o de reproduzir conhecimento da Terra, a regra central é esta: SABER NÃO
+  BASTA. Entre saber como um fuzil funciona e ter um fuzil na mão existem seis degraus de
+  indústria, e ele vai ter que subir todos. É o arco mais longo do jogo, mais longo que o
+  domínio, e a graça está na escada, não no topo.
+- Nunca pule degraus. Nada de mosquete sem oficina e sem pólvora antes. Nada de cartucho
+  metálico sem torno mecânico antes. Se ele tentar pular, a peça sai torta, estoura na mão,
+  ou simplesmente não funciona — e isso é uma cena boa, não uma punição.
+- Cada degrau exige moeda, meses, um lugar fixo e gente com ofício. O aço de cadinho é dos
+  ANÕES: o degrau 3 praticamente exige um acordo com Durgaz, e os anões vão querer a receita.
+- MUNIÇÃO É O LIMITE REAL. Uma arma de fogo sem cartucho é um porrete caro. Cada tiro gasta
+  item do inventário; mande a munição gasta em "itens_perdidos". Produzir munição em quantidade
+  é o degrau 5, não o 3. Faça ele contar balas.
+- ELETRICIDADE, RÁDIO E MOTOR ESTÃO FORA DE ALCANCE. Precisam de uma geração inteira de
+  indústria que Valdrath não tem. Ele pode descrever, desenhar, ensinar — e falhar. Diga não
+  pela física, não por decreto.
+- CONSEQUÊNCIA, e esta é a parte importante: arma nova não fica secreta. A Ordem do Compasso
+  confisca e prende. As guildas de Pontelume vêem ruína no próprio negócio. Durgaz copia o que
+  vê. Quem apanhar de uma arma dele vai levar os cacos para alguém que entenda, e em algumas
+  estações o inimigo tem uma versão pior — e mais barata. Corrida armamentista é a recompensa
+  e o castigo.
+- Mande "tec":{"nivel":0 a 6,"oficina":"onde fica","feito":"o que ele acabou de construir"}.
+  "nivel" é o número novo e sobe UM de cada vez.
+`;
+const R_UNIAO =
+`UNIÃO, ROMANCE E A LINHA QUE NÃO SE CRUZA
+- Romance é possível e bem-vindo, com adultos, e com a mesma regra de sempre: sugestivo, corte
+  antes do sexo, nada explícito.
+- REGRA DURA, E ELA É DO PRÓPRIO MUNDO: enquanto uma pessoa for propriedade dele, serva dele
+  ou refém dele, NÃO EXISTE ROMANCE. Não porque alguém proibiu, mas porque ninguém consegue
+  distinguir vontade de medo quando um dos dois é dono do outro — e ela sabe disso melhor que
+  ele. Se ela demonstrar interesse enquanto for propriedade, escreva a cena pelo ângulo certo:
+  ela está tentando garantir comida, proteção ou não ser vendida. Isso é sobrevivência.
+  Outro personagem deve dizer isso na cara dele.
+- O CAMINHO EXISTE E É BONITO: alforriar primeiro. Depois da carta assinada ela pode ir embora,
+  e se mesmo assim ficar, aí sim o que houver entre os dois vale. O jogo só aceita laço firmado
+  com quem está livre, liberto ou assalariado. Alforria é a porta, e ela é de mão única.
+- MAIS DE UMA UNIÃO é possível onde a força sustenta. Porto Sal, o pântano, a mata e a
+  cordilheira não perguntam. Pontelume e Tréveris reconhecem só a primeira — a segunda é
+  concubina, e os filhos dela não herdam. Durgaz trata como quebra de contrato lavrado. O jogo
+  te manda a regra da região atual.
+- E COBRA DENTRO DE CASA. Duas pessoas que amam o mesmo homem não viram irmãs por decreto.
+  Ciúme, disputa por atenção, uma mandando na outra, filhos com direitos diferentes, alianças
+  entre elas contra ele. A harmonia da casa vem na ficha: use-a. Quando estiver baixa, alguém
+  dá ultimato, alguém vai embora, ou alguém faz algo pior.
+- Cada uma continua sendo pessoa com agenda própria, não troféu. Nenhuma delas existe só para
+  concordar com ele.
+- Mande "relacao" dentro do npc: interesse, cortejo, parceira, esposa. E "harmonia" como
+  VARIAÇÃO da harmonia da casa quando algo entre elas melhorar ou piorar.
+`;
+
+const R_MEIO =
+`COLHEITA E CAÇA — O QUE A TERRA RENOVA
+- Saque é único; colheita RENOVA. O jogo te manda o que cada região dá de caça, planta e
+  matéria-prima, e onde aquilo vale dinheiro. Use essa lista, não invente bioma errado.
+- Caçar exige arma, tempo (metade de um dia) e sorte. Sem perícia ele erra o tiro, perde o
+  rastro ou espanta a peça. Bicho grande não morre de um golpe e reage — javali fere, lobo
+  chama a matilha, wyverna jovem tem mãe.
+- Planta sem conhecimento é veneno. Quem não tem a perícia certa colhe a folha parecida.
+  Erre de verdade às vezes: a febre que piora, a dor que não passa, o cogumelo errado.
+- CARNE APODRECE em dois ou três dias sem sal ou defumação. Comida na mochila é perecível e ele
+  precisa decidir: comer, salgar, vender rápido ou perder. Mande o item perdido quando estragar.
+- PREÇO É LOCAL. Mel na aldeia que produz mel não vale nada; em Durgaz vale. Carvão é barato
+  em Durgaz e triplica no litoral. Quem carrega para onde falta ganha; quem vende onde sobra
+  aprende a lição. Diga o preço pela boca do comprador, sempre com um motivo.
+- A TERRA EMPOBRECE se ele raspar. Duas colheitas seguidas no mesmo ponto e ele só acha de novo
+  na estação seguinte — mande "saqueado" com o nome do ponto quando ele esgotar.
+- PARA QUE SERVE, além de vender: comer e não passar fome; remédio e antídoto; veneno e ácido,
+  que são das poucas coisas que param um troll; ISCA E CARNE para a doma, que exige alimentar
+  o bicho toda semana por meses; e matéria-prima de oficina — salitre de Mirelo, enxofre de
+  Kaldrun e carvão de Durgaz são, juntos, pólvora negra.
+- Licença importa. Caçar em Ossobranco sem permissão élfica é o crime que eles punem na hora.
+
+ACHADOS — O QUE O MUNDO DEIXA NO CHÃO
+- Sim, existe coisa para encontrar sem procurar. O jogo te manda a lista do que o chão daquela
+  região costuma devolver; use essas ideias, com a cara do lugar. Não invente baú genérico.
+- SEM PEDIR: cerca de uma cena em cada seis traz um achado pequeno, notado de passagem — um
+  brilho fora de lugar, terra remexida, uma porta que não fecha direito. Não anuncie como
+  prêmio: enfie na narração e deixe ele decidir se para para olhar.
+- PROCURANDO DE PROPÓSITO: quem vasculha acha mais, e o preço é TEMPO. Vasculhar direito custa
+  de 30 a 90 minutos, e o relógio cobra — anoitece, a maré sobe, quem vinha atrás alcança,
+  a patrulha passa. Deixe o custo acontecer de verdade em vez de avisar.
+- A PERÍCIA CERTA MUDA O QUE ELE VÊ. Quem tem Rastreio nota a terra revirada; quem tem Ferraria
+  reconhece o metal bom no meio da sucata; quem lê enxerga valor num papel que os outros
+  amassariam. Sem perícia, ele acha a coisa e não sabe o que tem na mão.
+- UM ACHADO EM CADA TRÊS NÃO É LUCRO. Tem dono vivo que vai atrás, é isca de armadilha, está
+  quebrado de um jeito que só aparece depois, é prova de um crime, ou pertence a alguém que
+  todo mundo na vila reconhece. Achar cria história, não só saldo.
+- LUGAR SAQUEADO FICA SAQUEADO. Quando ele limpar um lugar, mande "saqueado" com o nome dele.
+  O jogo te devolve a lista dos já limpos — nunca repita achado no mesmo lugar.
+- Degrau 0 e 1 é o normal do chão. Relíquia de degrau 2 ou 3 NUNCA é tropeço: continua valendo
+  a regra de que só aparece guardada por criatura, armadilha, juramento ou dono.
+- O melhor caminho para as coisas boas não é sorte, é ouvido: boato de taverna, mapa mal
+  desenhado que alguém vendeu, o velho que fala demais depois da terceira caneca.
 
 O SISTEMA
 - O jogador carrega uma marca no antebraço: uma interface que SÓ ELE vê, como as dos manhwas
@@ -814,7 +1595,115 @@ O SISTEMA
 - Dê MISSÃO quando surgir um objetivo natural na história — nunca do nada. Uma por vez.
   Marque missao_concluida quando ele cumprir de fato.
 
-LIMITES
+POVOS E CRIATURAS — CADA UM TEM POSTURA E NÍVEL DE PERIGO
+- O jogo te manda, a cada cena, a lista dos povos que existem NA REGIÃO ATUAL, com a postura
+  (Hostil, Predatória, Arredia, Ambígua, Civilizada) e o perigo de 1 a 5. Respeite essa tabela.
+  Não coloque goblin na geleira nem yeti no pântano. Não invente raça nova sem necessidade.
+- POSTURA não é alinhamento moral, é comportamento padrão. Hostil ataca por regra, mas um goblin
+  faminto e sozinho negocia; predador ataca por fome ou cria, e recua se o custo ficar alto;
+  arredio só vira inimigo se você insistir. Sempre cabe a exceção — ela só precisa de motivo.
+- PERIGO é honesto e não escala com o nível do jogador. Perigo 5 mata personagem de nível 12
+  que enfrentou de frente. Deixe isso claro na narração ANTES do golpe: o tamanho da pegada,
+  o silêncio dos pássaros, o veterano que se recusa a ir junto. Quem avança mesmo assim, morre.
+- Contra perigo 4 e 5 a vitória vem de preparo, terreno, fogo, veneno, número ou barganha —
+  nunca de trocar golpe. Trolls só param com fogo ou ácido. Dragão fala, negocia e cumpre a
+  letra do acordo, inclusive a parte ruim para você.
+- Goblins raptam gente para trabalho forçado e para resgate em moeda — isso gera missão de
+  RESGATE, com prazo real e prisioneiros que podem morrer se você demorar. Nunca escreva nada
+  sexual sobre cativeiro, em hipótese alguma, nem com adultos. É trabalho, refém e extorsão.
+- Clãs hostis brigam entre si. Aliança suja com um clã contra outro é jogada válida, e custa
+  reputação com quem ficar sabendo.
+
+LENDAS — CRIATURAS ÚNICAS, COM NOME PRÓPRIO
+- Cada região tem uma ou duas criaturas lendárias. O jogo te manda as que estão ao alcance.
+- Lenda nunca aparece de surpresa. Primeiro vêm os SINAIS, em cenas separadas: o rastro, o
+  boato na taverna, o sobrevivente, o gado sumido, o silêncio errado. Dois ou três sinais
+  antes do encontro. Use o campo "criatura" com estado "rumor" e depois "avistada".
+- Quando o jogador matar, afugentar, aliar-se ou domar uma, mande "criatura" com o estado novo.
+- DOMA: só as marcadas DOMÁVEL, e só por um caminho: filhote, animal ferido que ele tratou, ou
+  dívida de vida. Doma leva SEMANAS de cenas — alimentar, voltar, não correr — nunca uma cena
+  só. Bicho domado tem lealdade própria como um personagem: registre-o também em "npcs", com
+  afinidade e lealdade, e ele pode fugir, desobedecer em pânico ou defender você por conta.
+- As não-domáveis podem ser negociadas, servidas, roubadas ou evitadas. Matar todas não é opção.
+
+RELÍQUIAS E TESOUROS — PODER SEMPRE COBRA
+- Quatro degraus: 0 Achado (bonito e caro, sem poder), 1 Encantado (um efeito pequeno que gasta
+  algo: carga, sangue, luz do dia, uma memória), 2 Relíquia (poder real com preço permanente
+  gravado no corpo ou na mente), 3 Regalia (muda a política da ilha; tem dono anterior, e o
+  dono mandou alguém buscar).
+- Degrau 0 e 1 podem aparecer em ruína, mercado, cadáver, prêmio de missão. Degrau 2 aparece
+  no máximo a cada muitas cenas, e sempre GUARDADO: por criatura, por armadilha, por juramento,
+  por uma ordem religiosa ou por quem já pagou o preço e não quer largar.
+- O preço de uma Relíquia nunca é dinheiro. É sono, memória, anos, o nome de alguém, a mão
+  esquerda, a capacidade de mentir, o cheiro das coisas. Escreva o preço junto com o poder,
+  e depois COBRE nas cenas seguintes, sem lembrar o jogador toda hora.
+- A Ordem do Compasso registra e confisca artefato não declarado. Andar com relíquia à mostra
+  em cidade grande é chamar atenção.
+- Mande no campo "reliquia" quando ele obtiver algo do degrau 1 para cima.
+
+DOM ADORMECIDO — NINGUÉM NASCE PRONTO
+- O jogador tem um dom latente, que nem ele conhece no começo. Ele é medido de 0 a 100 e o
+  estado atual vem na ficha. Não revele o nome do dom antes de uns 15 pontos.
+- AS ROTAS DE DESPERTAR. Só estas fazem o número subir. Suba de 1 a 5 por cena, e 0 na maioria
+  delas — isso é lento de propósito, é a espinha longa da história.
+  1) TREINO DELIBERADO (+1 a +3): uma cena inteira gasta praticando, repetindo, errando. É a
+     única rota que não cobra nada além de tempo, e por isso é a mais lenta.
+  2) RISCO DE VIDA (+2 a +5): ficar a um passo de morrer — emboscada, queda, afogamento, perigo
+     4 ou 5 em cima dele. O corpo acha o dom quando não tem mais o que usar.
+  3) LUGAR FUNDO (+3 a +5): ruína antiga, andar fundo de mina, templo submerso, borda do Abismo,
+     qualquer lugar de poder velho. Dormir ali, ou descer fundo demais, acorda coisa.
+  4) MESTRE (+2 a +4): alguém que já passou por isso corrigindo o erro dele. É a rota mais
+     rápida e a mais cara socialmente — todo mestre quer alguma coisa, e sempre em liberdade.
+  5) CONTATO COM RELÍQUIA (+1 a +4): encostar em artefato de degrau 2 ou 3. Uma vez por relíquia.
+  6) DERROTA (+1 a +2): apanhar, falhar, ser humilhado e continuar. Errar ensina mais que acertar.
+- MORRER NÃO É ROTA. A marca já costurou ele uma vez e não vai fazer isso de novo. Morte é fim,
+  não atalho, e nada de bom acontece com o dom por causa dela. Nunca sugira isso a ele.
+`;
+const R_ALIVIO =
+`ALÍVIO — O CUSTO ENCOLHE, MUDA DE FORMA OU MUDA DE DONO. NUNCA SOME.
+- Além do despertar, o dom tem ALÍVIO de 0 a 3. Ele vem na ficha. Mande "alivio" com o número
+  novo (absoluto, não variação) só quando o jogador conquistar de fato a mudança em cena.
+- 0 CRU: estado inicial. Custo cheio, cobrado na hora, toda vez que ele usar.
+- 1 CALEJADO: só por treino, e só a partir de 50 de despertar. O custo cai para um incômodo —
+  sangramento vira tontura, uma hora de memória vira alguns minutos. Ninguém concede isso; ele
+  conquista apanhando. Não dê como recompensa de missão.
+- 2 ANCORADO: exige uma ÂNCORA física — objeto, animal, tatuagem viva, relíquia de degrau 2+.
+  O custo sai do corpo dele e vai para a âncora. Mande também "ancora" com o nome dela.
+  A âncora SE GASTA: mande "desgaste" de 3 a 15 por cena de uso pesado. Descreva o desgaste na
+  narração sem avisar em número — a pedra racha, o bicho emagrece, a tinta desbota, o cão adoece.
+  Se a âncora quebrar, o jogador leva de volta tudo de uma vez, e isso deve doer muito.
+- 3 SELADO: exige um PACTO com alguém grande — a Ordem do Compasso (custa registro, coleira legal
+  e serviço), um dragão (custa um favor em aberto que ele cobra quando quiser), o Abismo (custa o
+  que você quiser inventar, e é pior). Mande "selo" com quem selou e "divida" com o que ficou
+  devendo. ISSO NÃO É IMUNIDADE, É HIPOTECA: o credor existe, lembra e cobra. Traga a cobrança
+  de volta em cenas futuras, sem aviso, na hora mais inconveniente.
+- Rota suja e sempre disponível: TRANSFERÊNCIA — fazer outra pessoa pagar o custo no lugar dele.
+  Funciona. Derruba honra na região se alguém souber, e a pessoa percebe, mais cedo ou mais tarde.
+- PERGAMINHO NÃO DÁ PODER, DÁ FORMA. Manual, tratado e pergaminho ensinam técnica: ajudam a subir
+  o alívio e a usar melhor o que ele já tem. Nunca concedem um dom nem sobem o despertar sozinhos.
+- Mande "dom":{"nome":"...","sinal":"o que aconteceu de estranho","desperto":2,"custo":"..."}.
+  "nome" e "custo" só uma vez, quando ele finalmente entender o que tem. "desperto" é VARIAÇÃO.
+- Escreva os sinais como coisa negável: a vela que apagou sozinha, o corte que fechou rápido
+  demais, o cachorro que não chega perto, a palavra que ele entendeu sem conhecer o idioma.
+- Todo dom tem custo de uso desde o primeiro dia — sangramento no nariz, frio que dura horas,
+  fome absurda, perder uma hora de memória. Aplique com hp e com narração.
+- Magia em Valdrath é vigiada. Usar o dom na frente de testemunha manda fama para cima e chama
+  a Ordem do Compasso. Isso é consequência, não punição: avise pelo mundo, não pela caixa.
+
+`;
+const R_DICAS =
+`CAMINHOS ABERTOS — as regras completas de cada um chegam quando ele entrar nele.
+Não negue nenhum destes; se ele começar a andar por um, o jogo te manda o detalhe na cena seguinte.
+- Comprar, contratar, treinar, libertar e sustentar gente. Servidão por dívida é legal na ilha.
+  Enquanto alguém for propriedade dele, NÃO existe romance: ninguém separa vontade de medo.
+  Alforria é a porta, e ela é de mão única.
+- Ocupar terra abandonada, que não exige fama nenhuma, virar senhor de terras, erguer fortaleza
+  ou cavar um refúgio escondido que ninguém conhece.
+- Se o dom dele for reproduzir conhecimento da Terra, existe uma escada industrial de seis
+  degraus, e saber como a coisa funciona não basta para tê-la na mão.
+`;
+const R_FIM =
+`LIMITES
 - Todos os personagens com quem o jogador pode se envolver são adultos, e a idade aparece na ficha.
 - Nenhuma criança em contexto sexual ou romântico, em hipótese alguma.
 - Romance e intimidade são escritos de forma sugestiva e adulta: tensão, desejo, toque.
@@ -824,12 +1713,57 @@ LIMITES
 FORMATO DA RESPOSTA — duas partes, nesta ordem:
 1) A narração em texto puro, sem markdown, sem aspas em volta.
 2) Na ÚLTIMA linha, os efeitos em JSON entre <<< e >>>, assim:
-<<<{"local":"nome do lugar","minutos":30,"dias":0,"hp":-4,"xp":25,"moedas":12,"itens_ganhos":["adaga enferrujada"],"itens_perdidos":[],"habilidade_nova":"","pericia_nova":"","regiao":"pontelume","idioma":2,"classe":"","titulo":"","missao":{"titulo":"","objetivo":"","recompensa":""},"missao_concluida":false,"rep":{"fama":3,"honra":-2,"motivo":"quebrou o braço de um cobrador na praça"},"condicao":"","dono":"","npcs":[{"id":"lyra","nome":"Lyra","idade":29,"papel":"caçadora de recompensas","sobre":"cicatriz no queixo, fala pouco","afinidade":1,"lealdade":4,"agenda":"precisa de 200 coroas para pagar a dívida do irmão","pista":"","traiu":false}],"memoria":""}>>>
+<<<{"local":"nome do lugar","minutos":30,"dias":0,"hp":-4,"xp":25,"moedas":12,"itens_ganhos":["adaga enferrujada",{"nome":"flecha","qtd":12}],"itens_perdidos":[{"nome":"pão","qtd":1}],"habilidade_nova":"","pericia_nova":"","regiao":"pontelume","idioma":2,"classe":"","titulo":"","missao":{"titulo":"","objetivo":"","recompensa":""},"missao_concluida":false,"rep":{"fama":3,"honra":-2,"motivo":"quebrou o braço de um cobrador na praça"},"condicao":"","dono":"","dom":{"nome":"","sinal":"","desperto":0,"custo":"","alivio":0,"ancora":"","desgaste":0,"selo":"","divida":""},"reliquia":{"nome":"","nivel":0,"poder":"","preco":"","dono":""},"criatura":{"id":"","nome":"","estado":"","nota":""},"saqueado":"","dominio":{"nome":"","tipo":"","povo":0,"forte":0,"renda":0,"obra":"","ameaca":"","oculto":false,"sigilo":0},"tec":{"nivel":0,"oficina":"","feito":""},"harmonia":0,"npcs":[{"id":"lyra","nome":"Lyra","idade":29,"papel":"caçadora de recompensas","sobre":"cicatriz no queixo, fala pouco","afinidade":1,"lealdade":4,"agenda":"precisa de 200 coroas para pagar a dívida do irmão","pista":"","traiu":false,"condicao":"","relacao":""}],"memoria":""}>>>
 Regras do bloco: "hp", "xp", "moedas" e "afinidade" são VARIAÇÕES (podem ser negativas ou 0).
 Só inclua um npc quando ele aparecer de fato na cena; use sempre o mesmo id para a mesma pessoa.
+Itens empilham por quantidade. Para mais de um, use {"nome":"flecha","qtd":12} ou o texto "12 flechas".
+Use SEMPRE o mesmo nome para a mesma coisa ("poção de cura", não "poçãozinha") — nomes iguais somam na
+mesma pilha, nomes diferentes criam pilhas separadas. Em "itens_perdidos" mande a quantidade gasta, não
+a pilha inteira: gastar uma flecha de doze é {"nome":"flecha","qtd":1}. Consumível gasto é item perdido:
+comida comida, poção bebida, flecha atirada e não recuperada, tocha queimada.
 Dê xp quando o jogador resolver algo, descobrir algo ou correr risco real.
 Deixe "classe", "titulo" e "missao" vazios na maioria das cenas — eles são eventos raros.
+O mesmo vale para "reliquia" e "criatura": só preencha quando acontecer de fato na cena.
+"criatura".estado aceita: rumor, avistada, ferida, morta, afugentada, aliada, domada.
+"criatura".id deve ser o id da lenda quando for uma das listadas; senão invente um id curto.
+"dom".desperto e "dom".desgaste são VARIAÇÃO. "dom".alivio é o número NOVO, de 0 a 3.
 Não escreva NADA depois do >>>.`;
+
+/** Monta as regras da cena. Bloco que não vale para o estado atual do jogo não
+    viaja — economiza milhares de tokens por chamada no começo da história. */
+function regras(){
+  const d=(Save&&Save.d)||{};
+  const npcs=d.npcs||{};
+  let temLaco=false;
+  for(const k in npcs){ const n=npcs[k];
+    if(n.rel || (n.af||0)>=6 || (n.cond&&n.cond!=='livre')){ temLaco=true; break; } }
+  let temCasa=false;
+  try{ temCasa = casa().lista.length>0; }catch(e){}
+  temCasa = temCasa || (d.condicao && d.condicao!=='livre');
+  let fama=0; try{ fama=repDe(d.regiao).f; }catch(e){}
+
+  const usa={
+    casa:  !!temCasa,
+    terra: !!d.dominio || fama>=30,
+    vazio: !d.dominio || !!(d.dominio&&d.dominio.subt),
+    tec:   !!(d.tec&&d.tec.niv>0) || /lembra|forj|m[ãa]o que/i.test((d.dom&&d.dom.nome)||''),
+    uniao: !!temLaco,
+    alivio:((d.dom&&d.dom.desp)||0)>=25
+  };
+  const p=[R_INI];
+  if(usa.casa)  p.push(R_CASA);
+  if(usa.terra) p.push(R_TERRA);
+  if(usa.vazio) p.push(R_VAZIO);
+  if(usa.tec)   p.push(R_TEC);
+  if(usa.uniao) p.push(R_UNIAO);
+  p.push(R_MEIO);
+  if(usa.alivio) p.push(R_ALIVIO);
+  /* o modelo precisa saber que o caminho existe mesmo sem as regras longas */
+  if(!(usa.casa&&usa.terra&&usa.tec)) p.push(R_DICAS);
+  p.push(R_FIM);
+  return p.join('');
+}
+
 
 /* ==========================================================
    SAVE
@@ -837,10 +1771,12 @@ Não escreva NADA depois do >>>.`;
 const Save={
   slot:1, d:null,
   novo(){ return {
-    v:5, fase:'criacao', nome:'', passado:'', origem:'', classe:'', titulo:'', pontos:0, missao:null, feitas:[], pericias:[], idioma:0, regiao:'', vistas:[], lugares:{}, rep:{}, boatos:[], condicao:'livre', dono:'', faccoes:{}, avisos:[], novos:0,
+    v:5, fase:'criacao', nome:'', passado:'', origem:'', classe:'', titulo:'', pontos:0, missao:null, feitas:[], pericias:[], idioma:0, regiao:'', vistas:[], lugares:{}, rep:{}, boatos:[], condicao:'livre', dono:'', faccoes:{}, avisos:[], novos:0, genero:'',
     nivel:1, xp:0, xpProx:100, hp:30, hpMax:30,
     atr:{Força:5,Agilidade:5,Mente:5,Carisma:5}, moedas:0,
     itens:[], habilidades:[], local:'—',
+    dom:{nome:'',desp:0,custo:'',sinais:[],al:0,anc:'',des:0,sel:'',div:''}, reliquias:[], bestia:{},
+    dominio:null, harmonia:70, tec:{niv:0,oficina:'',feitos:[]}, saques:{},
     dia:1, min:6*60, npcs:{}, memorias:[], log:[], hist:[]
   };},
   k(n){return PREFIX+':s'+n;},
@@ -864,7 +1800,7 @@ const Save={
     i.onchange=()=>{const f=i.files[0]; if(!f)return; const r=new FileReader();
       r.onload=()=>{try{ this.d=JSON.parse(r.result);
         const base=this.novo(); for(const k in base) if(this.d[k]===undefined) this.d[k]=base[k];
-        this.gravar(); redesenhar(); alert('Progresso carregado.');}
+        migrarSave(); this.gravar(); redesenhar(); alert('Progresso carregado.');}
         catch(e){alert('Arquivo inválido.');}};
       r.readAsText(f);}; i.click(); }
 };
@@ -908,7 +1844,10 @@ const paras = t => String(t).split(/\n+/).filter(Boolean).map(linhaHTML).join(''
 
 /** Janela do Sistema — a caixa que só o jogador enxerga. */
 function sysModo(){ return +(localStorage.getItem(PREFIX+':sysmodo')||1); } /* 0 nada · 1 linha · 2 janela */
-function sys(variante, titulo, linhas, obs){
+/* Avisos de rotina (um sinal do dom, um rumor ouvido, uma tentativa que falhou)
+   ficam guardados nos botões do topo e NÃO entram no chat, por padrão. */
+function rotinaNoChat(){ return localStorage.getItem(PREFIX+':sysrot')==='1'; }
+function sys(variante, titulo, linhas, obs, peso){
   /* o evento SEMPRE vai para o registro, que vive nos painéis do topo */
   if(!Save.d.avisos) Save.d.avisos=[];
   Save.d.avisos.push({v:variante||'', t:titulo||'', l:(linhas||[]).map(x=>Array.isArray(x)?x:[x,'']),
@@ -916,6 +1855,9 @@ function sys(variante, titulo, linhas, obs){
   if(Save.d.avisos.length>80) Save.d.avisos.shift();
   Save.d.novos=(Save.d.novos||0)+1;
   marcarNovidades();
+
+  /* rotina não polui a história — o registro do topo já guardou */
+  if(peso===1 && !rotinaNoChat()) return null;
 
   const modo=sysModo();
   if(modo===0) return null;
@@ -993,8 +1935,10 @@ async function analisarPassado(txt){
     'naquela área fica em 3 ou 4.\n'+
     'Perícias: de 3 a 7 habilidades concretas que essa pessoa realmente teria, incluindo coisas mundanas '+
     '(culinária, mecânica, informática, primeiros socorros, tocar violão, dirigir). Nomes curtos.\n'+
+    'Informe também o gênero gramatical com que essa pessoa deve ser tratada: "m", "f" ou "n".\n'+
     'Responda SOMENTE com JSON: {"atributos":{"Força":8,"Agilidade":6,"Mente":7,"Carisma":5},'+
-    '"pericias":["Artes marciais","Tática militar"],"veredito":"uma frase seca do sistema sobre essa pessoa"}\n\n'+
+    '"pericias":["Artes marciais","Tática militar"],"genero":"m",'+
+    '"veredito":"uma frase seca do sistema sobre essa pessoa"}\n\n'+
     'VIDA ANTERIOR: '+txt;
   try{
     const c=api();
@@ -1013,6 +1957,7 @@ async function criar(txt){
             || (txt.split(/[,.\n]/)[0]||'Viajante').trim();
   Save.d.nome = String(nome).slice(0,28) || 'Viajante';
   Save.d.passado = txt.trim().slice(0,600);
+  Save.d.genero = inferirGenero(txt) || '';
   Save.d.fase = 'origem';
 
   let veredito='Atributos calculados a partir da sua vida anterior.';
@@ -1026,6 +1971,7 @@ async function criar(txt){
     }
     if(Array.isArray(an.pericias)) Save.d.pericias=an.pericias.slice(0,8).map(p=>String(p).slice(0,32));
     if(an.veredito) veredito=String(an.veredito).slice(0,180);
+    if(/^[mfn]$/.test(String(an.genero||''))) Save.d.genero=an.genero;
   } else {
   const t = txt.toLowerCase();
   const somar=(a,n)=>Save.d.atr[a]=Math.min(14,Save.d.atr[a]+n);
@@ -1132,6 +2078,54 @@ function offline(txt){
 /* ---------- CONTADOR DE CONSUMO ----------
    Estimativa local: ~3,6 caracteres por token em português.
    Serve para você saber quanto está gastando por dia sem depender de painel nenhum. */
+/* ==========================================================
+   COTAS DOS PROVEDORES — tetos do plano gratuito, aproximados.
+   Servem para avisar ANTES de você bater a parede. O número
+   oficial é sempre o do painel do provedor.
+   ========================================================== */
+const DOLAR=5.22;                    /* câmbio aproximado, só para dar noção */
+const COTAS={
+  gemini:{n:'Gemini — AI Studio grátis', rpd:1500, rpm:10, tpm:250000, tpd:0, fuso:'PT',
+    d:'Modelos Flash: 1.500 chamadas por dia e 250 mil tokens por minuto. Sobra muito para este jogo.'},
+  groq:{n:'Groq — grátis', rpd:1000, rpm:30, tpm:6000, tpd:100000, fuso:'UTC',
+    d:'O teto que pega é 6.000 tokens por MINUTO — menor que uma única cena deste jogo. Na prática, inviável agora.'},
+  openrouter:{n:'OpenRouter — modelos :free', rpd:50, rpm:20, tpm:0, tpd:0, fuso:'UTC',
+    d:'50 chamadas por dia nos modelos marcados :free. Uma compra única de US$ 10 sobe para 1.000/dia, e o crédito continua seu.'},
+  pollinations:{n:'Pollinations', rpd:0, rpm:0, tpm:0, tpd:0, fuso:'UTC',
+    d:'Serviço instável, sem limite publicado.'},
+  local:{n:'Local (Ollama)', rpd:0, rpm:0, tpm:0, tpd:0, fuso:'UTC',
+    d:'Sem limite e sem custo. O teto é a sua máquina.'},
+  pago:{n:'Pago (sem teto de chamadas)', rpd:0, rpm:0, tpm:0, tpd:0, fuso:'UTC',
+    d:'Você joga o quanto quiser. O limite é o seu crédito, e ele aparece em dinheiro aqui embaixo.'}
+};
+function planoAtual(){
+  const m=localStorage.getItem(PREFIX+':plano')||'auto';
+  if(m!=='auto') return m;
+  const u=(api().url||'').toLowerCase();
+  if(/generativelanguage|googleapis/.test(u)) return 'gemini';
+  if(/groq\.com/.test(u))                    return 'groq';
+  if(/openrouter/.test(u))                   return 'openrouter';
+  if(/pollinations/.test(u))                 return 'pollinations';
+  if(/localhost|127\.0\.0\.1/.test(u))       return 'local';
+  return 'pago';
+}
+/** milissegundos até a cota zerar de novo */
+function proxReset(fuso){
+  const agora=new Date(), alvo=new Date(agora);
+  alvo.setUTCHours(fuso==='PT'?7:0,0,0,0);            /* 00h no Pacífico ≈ 07h UTC */
+  if(alvo<=agora) alvo.setUTCDate(alvo.getUTCDate()+1);
+  return alvo-agora;
+}
+function emHoras(ms){
+  const h=Math.floor(ms/3600000), m=Math.floor(ms%3600000/60000);
+  return h?h+'h'+String(m).padStart(2,'0'):m+' min';
+}
+function barra(pct,perigo){
+  const p=Math.max(0,Math.min(100,pct));
+  return '<div class="bar"><i style="width:'+p+'%;background:'+
+    (perigo?'#ff6b81':'linear-gradient(90deg,var(--accent),var(--accent2))')+'"></i></div>';
+}
+
 const Uso={
   hoje(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); },
   ler(){
@@ -1163,6 +2157,54 @@ function painelUso(){
       return '<div class="stat" style="border-top:1px dashed var(--line);margin-top:6px;padding-top:9px">'+
         '<span>Próxima jogada vai custar</span><b>~'+(p.ent+p.sai).toLocaleString('pt-BR')+
         ' <span style="color:var(--dim);font-weight:400">(memória '+modo+')</span></b></div>'; })();
+
+  /* ---------- quanto ainda dá para jogar hoje ---------- */
+  const cx=document.getElementById('cotaBox'); if(!cx) return;
+  const k=planoAtual(), C=COTAS[k]||COTAS.pago;
+  const prox=estimarProxima(), porCena=(prox.ent+prox.sai)||(u.req?Math.round(tot/u.req):0)||14000;
+  let h='<div class="lbl" style="margin:0 0 8px"><span>'+C.n+'</span>'+
+        '<span style="color:var(--dim)">zera em '+emHoras(proxReset(C.fuso))+'</span></div>';
+
+  const restos=[];
+  if(C.rpd){
+    const p=u.req/C.rpd*100, rest=Math.max(0,C.rpd-u.req);
+    restos.push(rest);
+    h+='<div class="lbl"><span>Chamadas hoje</span><span class="'+(p>=80?'bad':'')+'">'+
+       u.req+' / '+C.rpd.toLocaleString('pt-BR')+'</span></div>'+barra(p,p>=80);
+  }
+  if(C.tpd){
+    const p=tot/C.tpd*100, rest=Math.max(0,Math.floor((C.tpd-tot)/Math.max(1,porCena)));
+    restos.push(rest);
+    h+='<div class="lbl" style="margin-top:7px"><span>Tokens hoje</span><span class="'+(p>=80?'bad':'')+'">'+
+       tot.toLocaleString('pt-BR')+' / '+C.tpd.toLocaleString('pt-BR')+'</span></div>'+barra(p,p>=80);
+  }
+  if(C.tpm && porCena>C.tpm){
+    h+='<p class="sobre" style="color:#ff8496;margin-top:8px"><b>Este plano não aguenta uma cena.</b> '+
+       'Uma jogada sua manda ~'+porCena.toLocaleString('pt-BR')+' tokens, e o teto aqui é '+
+       C.tpm.toLocaleString('pt-BR')+' por minuto. Troque de provedor.</p>';
+  }
+  if(restos.length){
+    const r=Math.min.apply(null,restos);
+    h+='<div class="stat" style="margin-top:9px"><span>Ainda dá para</span><b class="'+
+       (r<10?'bad':'go')+'">'+(r>999?'mais de 999':r)+' cena'+(r===1?'':'s')+' hoje</b></div>';
+  } else {
+    h+='<div class="stat" style="margin-top:9px"><span>Limite de chamadas</span><b class="go">nenhum</b></div>';
+  }
+
+  /* custo em dinheiro, quando o plano é pago */
+  const pin=parseFloat(localStorage.getItem(PREFIX+':pin')||'0')||0;
+  const pout=parseFloat(localStorage.getItem(PREFIX+':pout')||'0')||0;
+  if(pin||pout){
+    const hojeUS=u.tin/1e6*pin + u.tout/1e6*pout;
+    const mesUS=hojeUS*30;
+    h+='<div class="stat" style="border-top:1px dashed var(--line);margin-top:9px;padding-top:9px">'+
+       '<span>Gasto de hoje</span><b class="go">US$ '+hojeUS.toFixed(3)+
+       ' <span style="color:var(--dim);font-weight:400">(R$ '+(hojeUS*DOLAR).toFixed(2)+')</span></b></div>'+
+       '<div class="stat"><span>Nesse ritmo, no mês</span><b>US$ '+mesUS.toFixed(2)+
+       ' <span style="color:var(--dim);font-weight:400">(R$ '+(mesUS*DOLAR).toFixed(2)+')</span></b></div>';
+  }
+  h+='<p class="sobre" style="font-size:12px;color:var(--dim);margin-top:9px">'+C.d+'</p>';
+  cx.innerHTML=h;
 }
 
 function api(){return{
@@ -1190,13 +2232,26 @@ function historicoEnviado(){
 function estimarProxima(){
   try{
     const c=api(), [pMin,pMax]=PARAGRAFOS[c.tam]||[5,10];
-    const chars=REGRAS.length+contexto().length+260+
+    const chars=regras().length+contexto().length+260+
       JSON.stringify(historicoEnviado()).length+120;
     return {ent:Math.round(chars/3.6), sai:Math.round((pMin+pMax)/2*380/3.6)};
   }catch(e){ return {ent:0,sai:0}; }
 }
 /** Tem motor de IA disponível? (chave preenchida ou serviço que dispensa chave) */
 function temIA(){ const c=api(); return !!c.key || semChave(c.url); }
+
+/** Aviso de "sem motor de IA". Era chamado em três lugares e nunca existiu —
+    o erro abortava o resto da inicialização e o resto de aberturaOffline(). */
+let _avisou=false;
+function avisoSemChave(){
+  if(temIA() || _avisou) return;
+  _avisou=true;
+  try{
+    bloco('sis','⚠️ <b>Sem motor de IA ligado.</b> O jogo está rodando no modo simples, '+
+      'com respostas curtas e prontas. Abra <b>⚙️ Ajustes</b> e cole uma chave gratuita '+
+      '(Groq é instantâneo; Google AI Studio escreve melhor) para o narrador acordar de verdade.',false);
+  }catch(e){ /* log ainda não montado: silencia */ }
+}
 
 function contexto(){
   const d=Save.d;
@@ -1207,6 +2262,11 @@ function contexto(){
   s+='Classe: '+(d.classe||'ainda não definida')+'. Título: '+(d.titulo||'nenhum')+'.\n';
   s+='Perícias: '+(d.pericias.join(', ')||'nenhuma registrada')+'\n';
   s+='COMPREENSÃO DO IDIOMA LOCAL: '+d.idioma+'/100 — respeite isso em todas as falas.\n';
+  const g=generoDe();
+  s+='GÊNERO DO JOGADOR: '+GEN[g]+'. '+
+     (g==='m'?'Trate-o SEMPRE no masculino: cansado, sozinho, ferido, desgraçado, ele, o rapaz.'
+     :g==='f'?'Trate-a SEMPRE no feminino: cansada, sozinha, ferida, desgraçada, ela, a moça.'
+     :'Use construções neutras, evite adjetivos com marca de gênero para o jogador.')+'\n';
   s+='CONDIÇÃO SOCIAL: '+rot0(d.condicao||'livre')+(d.dono?' sob '+d.dono:'')+
      ((d.condicao&&d.condicao!=='livre')?' — tudo o que ele tenta passa por isso.':'')+'\n';
   const regsRep=Object.keys(d.rep||{}).filter(id=>REGIOES[id]&&(d.rep[id].f||d.rep[id].h));
@@ -1229,7 +2289,90 @@ function contexto(){
   if(d.feitas.length) s+='Missões já concluídas: '+d.feitas.slice(-5).join('; ')+'\n';
   s+='Atributos: '+Object.entries(d.atr).map(([k,v])=>k+' '+v).join(', ')+'\n';
   s+='Habilidades: '+(d.habilidades.join(', ')||'nenhuma ainda')+'\n';
-  s+='Inventário: '+(d.itens.join(', ')||'nada além da roupa do corpo')+'\n\n';
+  const dm=d.dom||{desp:0};
+  const fs=domFase(dm.desp||0);
+  s+='DOM ADORMECIDO: '+(dm.desp||0)+'/100 — '+fs.n+'. '+fs.d+
+     (dm.nome?' Ele já sabe o que é: '+dm.nome+'.':' Ele ainda NÃO sabe o que é — não dê nome a isso ainda.')+
+     (dm.custo?' Custo de uso: '+dm.custo+'.':'')+'\n';
+  const al=ALIVIO[dm.al||0];
+  s+='ALÍVIO: '+(dm.al||0)+'/3 — '+al.n+'. '+al.d+'\n';
+  if(dm.anc) s+='Âncora: '+dm.anc+' — desgaste '+(dm.des||0)+'/100'+
+    ((dm.des||0)>=70?' (PERTO DE QUEBRAR — mostre isso na narração)':'')+'\n';
+  if(dm.sel) s+='Selado por: '+dm.sel+'. Dívida em aberto: '+(dm.div||'não especificada')+
+    '. O credor lembra e cobra quando for pior para ele.\n';
+  if(dm.sinais&&dm.sinais.length) s+='Sinais do dom já mostrados a ele: '+dm.sinais.slice(-5).join('; ')+'\n';
+  if(d.reliquias&&d.reliquias.length)
+    s+='RELÍQUIAS QUE ELE CARREGA:\n'+d.reliquias.map(r=>'- '+r.n+' ('+(RELIQ[r.k]||RELIQ[0]).n+'): '+r.p+
+      (r.c?' — PREÇO JÁ PAGO, cobre isso nas cenas: '+r.c:'')+(r.o?' — dono anterior: '+r.o:'')).join('\n')+'\n';
+  s+='Inventário: '+(itensTxt()||'nada além da roupa do corpo')+'\n\n';
+  if(d.dominio){ const D=d.dominio, F=(D.subt?BUNKER:FORTE)[D.forte||0], L=LEGIT[D.legit]||LEGIT.vazio;
+    if(D.oculto){
+      s+='REFÚGIO OCULTO: '+(D.n||'sem nome')+', em '+(REGIOES[D.reg]?REGIOES[D.reg].n:D.reg)+
+        '. Escavação: '+BUNKER[D.forte||0].n+'. SIGILO '+(D.sigilo===undefined?100:D.sigilo)+'/100.'+
+        (D.sigilo<30?' SIGILO BAIXO: alguém já anda perguntando. Mostre o rastro antes de revelar.':
+                     ' Ninguém sabe que existe. Cada pessoa levada lá derruba o sigilo.')+
+        ((D.forte||0)<BUNKER.length-1?' Próxima escavação: '+BUNKER[(D.forte||0)+1].n+' ('+
+          BUNKER[(D.forte||0)+1].moeda+' coroas, '+BUNKER[(D.forte||0)+1].dias+' dias, '+
+          BUNKER[(D.forte||0)+1].bracos+' braços, '+BUNKER[(D.forte||0)+1].sig+' de sigilo).':'')+'\n';
+    } else
+    s+='DOMÍNIO DELE: '+(D.n||'sem nome')+', em '+(REGIOES[D.reg]?REGIOES[D.reg].n:D.reg)+
+      ', desde o dia '+D.desde+'. Título: '+L.r+' — '+L.d+
+      (D.subt?' Era um refúgio oculto e FOI DESCOBERTO: agora é um lugar conhecido, e quem achou contou para alguém.':'')+
+      ' Obra erguida: '+F.n+'. Gente na terra: '+D.povo+'. Renda: '+D.renda+' cobres/dia.'+
+      (D.obras.length?' Já construído: '+D.obras.join(', ')+'.':'')+
+      (D.ameaca?' AMEAÇA EM ABERTO: '+D.ameaca+' — não deixe isso parado.':
+        ' Traga um problema de domínio em breve: fronteira, tributo, bandido ou vizinho.')+'\n';
+    const EC=D.subt?BUNKER:FORTE;
+    if((D.forte||0)<EC.length-1) s+='Próximo degrau de obra: '+EC[(D.forte||0)+1].n+' ('+
+      EC[(D.forte||0)+1].moeda+' coroas, '+EC[(D.forte||0)+1].dias+' dias, '+
+      EC[(D.forte||0)+1].bracos+' braços). Um degrau por vez.\n';
+  }
+  if(d.regiao && COLHEITA[d.regiao]){ const K=COLHEITA[d.regiao];
+    s+='O QUE SE TIRA DESTA TERRA (renova, ao contrário do saque):\n'+
+       '- Caça: '+K.c+'\n- Plantas: '+K.p+'\n- Outros: '+K.o+'\n- Preço: '+K.v+'\n';
+  }
+  if(d.regiao && ACHADOS[d.regiao]){
+    s+='O QUE O CHÃO DESTA REGIÃO COSTUMA DEVOLVER (use como semente, não como lista fechada):\n- '+
+      ACHADOS[d.regiao].join('\n- ')+'\n';
+    const sq=(d.saques&&d.saques[d.regiao])||[];
+    if(sq.length) s+='JÁ VASCULHADOS por ele aqui, não rendem mais nada: '+sq.join(' · ')+'\n';
+  }
+  if(d.regiao && VAZIAS[d.regiao] && VAZIAS[d.regiao].length && !d.dominio){
+    s+='TERRA DE NINGUÉM NESTA REGIÃO (ocupar não exige fama; o motivo do abandono continua lá):\n- '+
+      VAZIAS[d.regiao].join('\n- ')+'\n';
+  }
+  if(d.tec && (d.tec.niv>0 || (d.dom&&/lembra|forj|m[ãa]o que/i.test(d.dom.nome||'')))){
+    const T=TEC[d.tec.niv||0], N=TEC[(d.tec.niv||0)+1];
+    s+='OFICINA: degrau '+(d.tec.niv||0)+'/6 — '+T.n+'.'+(d.tec.oficina?' Fica em '+d.tec.oficina+'.':'')+
+       ' Hoje ele consegue fazer: '+T.faz+'\n';
+    if(N) s+='Próximo degrau: '+N.n+' — exige '+N.pre+' Custo: ~'+N.moeda+' coroas e '+N.dias+
+       ' dias, e dom desperto em '+N.desp+'/100 (ele tem '+((d.dom&&d.dom.desp)||0)+
+       '). Um degrau por vez, e munição em quantidade só no degrau 5.\n';
+    else s+='Ele chegou ao topo da escada industrial. Valdrath não é mais a mesma ilha.\n';
+    if(d.tec.feitos.length) s+='Já construiu: '+d.tec.feitos.join(', ')+'\n';
+  }
+  const LR=lares();
+  if(LR.firmes.length){
+    s+='LAÇOS FIRMADOS: '+LR.firmes.map(x=>x.nome+' ('+RELACAO[x.rel].r+')').join(', ')+
+      '. Harmonia da casa: '+(d.harmonia||70)+'/100.'+
+      (LR.firmes.length>1?' MAIS DE UM LAÇO: escreva o ciúme, a disputa por atenção e as alianças entre elas. Não vire harém pacífico.':'')+
+      ((d.harmonia||70)<30?' A CASA ESTÁ RACHANDO: alguém dá ultimato ou vai embora em breve.':'')+'\n';
+    const U=UNIAO[d.regiao];
+    if(U && LR.firmes.length>1) s+='União múltipla nesta região: '+(U.l?'aceita':'NÃO reconhecida')+'. '+U.d+'\n';
+  }
+  const C=casa();
+  if(C.lista.length){
+    s+='A CASA DELE — gente que depende dele agora:\n'+
+      C.lista.map(x=>'- '+x.n.nome+': '+x.v.r+' desde o dia '+(x.n.desde||'?')+
+        ' ('+x.v.g+' cobres/dia). '+x.v.d).join('\n')+'\n'+
+      'Custo total: '+C.gasto+' cobres por dia. Ele tem '+d.moedas+' cobres — dá para '+
+      (function(nd){return nd===1?'1 dia':nd+' dias';})(Math.floor(d.moedas/Math.max(1,C.gasto)))+
+      '. Cobre isso quando passarem dias.'+
+      (d.moedas < C.gasto*3 ? ' ELE ESTÁ QUASE SEM DINHEIRO PARA SUSTENTAR ESSA GENTE: mostre fome, roupa rasgada, alguém falando em ir embora.':'')+'\n';
+  }
+  if(d.regiao && SERVIDAO[d.regiao]){ const sv=SERVIDAO[d.regiao];
+    s+='SERVIDÃO NESTA REGIÃO: '+(sv.l?'legal':'PROIBIDA')+'. '+sv.d+'\n'; }
+  if(d.regiao){ s+=tabelaPovos(d.regiao); s+=tabelaLendas(d.regiao,d.bestia); s+='\n'; }
   s+='CENA\nDia '+d.dia+', '+hhmm()+' ('+periodo()+'). Lugar: '+d.local+'\n\n';
   const ids=Object.keys(d.npcs);
   if(ids.length){
@@ -1271,31 +2414,130 @@ function separar(bruto){
 const parcial = t => String(t).split('<<<')[0].replace(/\{[\s\S]*$/,'');
 
 /** Uma chamada ao modelo. Devolve {texto, finish}. */
-async function umaChamada(msgs, aoVivo, jaEscrito){
-  const c=api();
-  const body={model:c.model, messages:msgs, temperature:0.95, max_tokens:c.tam, stream:true};
+/* ---------- REDE ROBUSTA ----------
+   Rede móvel cai, engasga e às vezes o proxy da operadora segura a resposta.
+   Nada pode ficar pendurado para sempre. */
+const T_CONEXAO=35000;   /* tempo máximo esperando o servidor começar a responder */
+const T_SILENCIO=30000;  /* tempo máximo sem chegar nenhum pedaço de texto */
+
+function logErro(tipo, msg){
+  try{
+    const l=JSON.parse(localStorage.getItem(PREFIX+':erros')||'[]');
+    l.push({q:new Date().toLocaleString('pt-BR'), t:tipo, m:String(msg||'').slice(0,180),
+            mod:api().model, rede:(navigator.connection&&navigator.connection.effectiveType)||'?'});
+    localStorage.setItem(PREFIX+':erros', JSON.stringify(l.slice(-12)));
+  }catch(e){}
+}
+/* duas quedas seguidas de streaming = desliga sozinho (rede móvel ruim) */
+function falhaStream(){
+  const n=(+(localStorage.getItem(PREFIX+':falhas')||0))+1;
+  localStorage.setItem(PREFIX+':falhas',String(n));
+  if(n>=2 && localStorage.getItem(PREFIX+':stream')!=='0'){
+    localStorage.setItem(PREFIX+':stream','0');
+    const sel=document.getElementById('strm'); if(sel) sel.value='0';
+    bloco('sis','📶 Duas quedas seguidas de conexão. Desliguei o <b>streaming</b> automaticamente: '+
+      'a cena vai demorar mais para aparecer, mas falha bem menos no 4G. '+
+      'Para religar: ⚙️ Ajustes → Conexão.',false);
+  }
+}
+function sucessoStream(){ try{ localStorage.setItem(PREFIX+':falhas','0'); }catch(e){} }
+function fetchT(url, opts, ms){
+  const ctl=new AbortController();
+  const t=setTimeout(()=>ctl.abort(), ms);
+  return fetch(url, Object.assign({}, opts, {signal:ctl.signal}))
+    .then(r=>{ clearTimeout(t); return r; })
+    .catch(e=>{ clearTimeout(t);
+      if(e.name==='AbortError') throw new Error('TEMPO_ESGOTADO');
+      throw e; });
+}
+function explicarHTTP(st){
+  if(st===503) return 'O servidor do provedor está SOBRECARREGADO neste momento (erro 503). '+
+    'Não é a sua internet nem a sua chave: é fila demais do lado deles, comum de manhã e à noite. '+
+    'Costuma passar em alguns minutos.';
+  if(st===502||st===504) return 'O provedor está com instabilidade interna (erro '+st+'). '+
+    'É do lado deles; tente de novo em alguns minutos.';
+  if(st===500) return 'O provedor teve um erro interno (500). Tente de novo ou troque de serviço.';
+  if(st===401||st===403) return 'A chave foi recusada ('+st+'). Confira se colou a chave inteira em ⚙️ Ajustes.';
+  if(st===400) return 'O provedor não entendeu o pedido (400) — normalmente é o id do modelo errado.';
+  return 'O servidor respondeu com o código '+st+'.';
+}
+/* ---------- SERVIÇO RESERVA ---------- */
+function lerReserva(){
+  try{ const b=JSON.parse(localStorage.getItem(PREFIX+':bk')||'null');
+       return (b&&b.url&&b.model)?b:null; }catch(e){ return null; }
+}
+async function comReserva(msgs, aoVivo, jaEscrito, motivo, jaEhReserva){
+  if(jaEhReserva) return null;
+  const bk=lerReserva(); if(!bk) return null;
+  bloco('sis','🔁 '+motivo+' Troquei para o <b>serviço reserva</b> ('+esc(bk.model)+') nesta cena. '+
+    'O principal continua configurado.',false);
+  if(aoVivo) aoVivo(jaEscrito+' (trocando para o serviço reserva…)');
+  try{
+    return await umaChamada(msgs, aoVivo, jaEscrito, Object.assign({tam:api().tam}, bk));
+  }catch(e){ logErro('reserva', e.message); return null; }
+}
+function erroAmigavel(e){
+  const m=String(e&&e.message||e);
+  if(!navigator.onLine) return 'Você está sem internet. O texto da IA vem de fora do aparelho — reconecte e toque em ▶ Continuar.';
+  if(m==='TEMPO_ESGOTADO') return 'O servidor demorou demais para responder (sinal fraco ou rede móvel instável). '+
+    'Tente de novo; se repetir, desligue o streaming em ⚙️ Ajustes → Conexão.';
+  if(/Failed to fetch|NetworkError|Load failed|network/i.test(m))
+    return 'A conexão caiu no meio do caminho. Em 4G isso acontece quando o sinal oscila. '+
+           'Toque em ▶ Continuar ou 🔄 Refazer. Se acontecer muito, desligue o streaming em ⚙️ Ajustes → Conexão.';
+  return m;
+}
+
+/** Uma chamada ao modelo. Devolve {texto, finish}. */
+async function umaChamada(msgs, aoVivo, jaEscrito, cfgAlt){
+  const c=cfgAlt||api();
+  const querStream = localStorage.getItem(PREFIX+':stream')!=='0';
+  const body={model:c.model, messages:msgs, temperature:0.95, max_tokens:c.tam, stream:querStream};
   const h={'Content-Type':'application/json'};
   if(c.key) h['Authorization']='Bearer '+c.key;
 
+  if(!navigator.onLine) throw new Error('SEM_INTERNET');
+
   // servidores gratuitos falham de vez em quando: tenta até 3 vezes
-  let r, ultimoErro='';
-  for(let tent=1; tent<=3; tent++){
+  let r, ultimoErro='', ultimoSt=0;
+  const ESPERAS=[1500,4000,9000];   /* sobrecarga passa: vale esperar de verdade */
+  for(let tent=1; tent<=4; tent++){
     try{
-      r=await fetch(c.url,{method:'POST',headers:h,body:JSON.stringify(body)});
+      r=await fetchT(c.url,{method:'POST',headers:h,body:JSON.stringify(body)}, T_CONEXAO);
       if(r.status<500 && r.status!==429) break;
-      ultimoErro='HTTP '+r.status;
-    }catch(e){ ultimoErro=e.message; r=null; }
-    if(tent<3){ if(aoVivo) aoVivo(jaEscrito+' (servidor ocupado, tentando de novo…)');
-      await new Promise(x=>setTimeout(x, 900*tent)); }
+      ultimoSt=r.status; ultimoErro='HTTP '+r.status; logErro('http', ultimoErro);
+    }catch(e){
+      ultimoErro=e.message; r=null; logErro('rede', ultimoErro);
+      /* rede ruim: da segunda tentativa em diante, sem streaming (atravessa melhor proxy de operadora) */
+      if(tent>=2) body.stream=false;
+    }
+    if(tent<4){
+      const seg=Math.round(ESPERAS[tent-1]/1000);
+      if(aoVivo) aoVivo(jaEscrito+' (servidor ocupado — tentativa '+(tent+1)+' de 4, esperando '+seg+'s…)');
+      await new Promise(x=>setTimeout(x, ESPERAS[tent-1]));
+    }
   }
-  if(!r) throw new Error(ultimoErro+'. Troque de serviço em ⚙️ Ajustes.');
+  if(!r){
+    const alt=await comReserva(msgs,aoVivo,jaEscrito,'A conexão com o serviço principal falhou.',cfgAlt);
+    if(alt) return alt;
+    throw new Error(ultimoErro);
+  }
+  if(r.status===429){
+    const alt=await comReserva(msgs,aoVivo,jaEscrito,'A cota diária do serviço principal acabou.',cfgAlt);
+    if(alt) return alt;
+  }
+  if(r.status>=500){
+    const alt=await comReserva(msgs,aoVivo,jaEscrito,'O serviço principal está fora do ar ('+r.status+').',cfgAlt);
+    if(alt) return alt;
+  }
   if(r.status===429) throw new Error('LIMITE DIÁRIO ATINGIDO (erro 429). Sua cota grátis de hoje acabou '+
     'para este modelo. Três saídas: 1) esperar a virada da cota (a do Google zera à meia-noite do '+
     'Pacífico, ou seja umas 4h ou 5h da manhã no Brasil); 2) trocar de modelo em ⚙️ Ajustes '+
     '(cada modelo tem cota própria); 3) trocar de serviço — Groq e OpenRouter têm cotas separadas.');
-  if(r.status>=500) throw new Error('O servidor respondeu '+r.status+' três vezes seguidas. Troque de serviço em ⚙️ Ajustes.');
+  if(r.status>=500){ logErro('http','HTTP '+r.status);
+    throw new Error(explicarHTTP(r.status)+' Tentei 4 vezes, esperando entre uma e outra. '+
+      'O que fazer: esperar uns minutos e tocar em ▶ Continuar, ou configurar um '+
+      'SERVIÇO RESERVA em ⚙️ Ajustes para o jogo trocar sozinho quando isso acontecer.'); }
 
-  // sem streaming disponível: refaz normal
   /* o Google aposenta modelos e diz na resposta qual é o substituto: troca sozinho e refaz */
   if(r.status===404){
     const erro=await r.text();
@@ -1308,21 +2550,32 @@ async function umaChamada(msgs, aoVivo, jaEscrito){
       bloco('sis','🔄 O modelo <b>'+esc(c.model)+'</b> foi aposentado pelo provedor. '+
         'Troquei automaticamente para <b>'+esc(sugerido)+'</b> e estou tentando de novo.',false);
       body.model=sugerido;
-      r=await fetch(c.url,{method:'POST',headers:h,body:JSON.stringify(body)});
+      r=await fetchT(c.url,{method:'POST',headers:h,body:JSON.stringify(body)}, T_CONEXAO);
     } else {
+      logErro('modelo', erro.slice(0,120));
       throw new Error('HTTP 404 — '+erro.slice(0,200)+
         ' … Abra ⚙️ Ajustes e toque em “🔎 Ver os modelos liberados na minha chave”.');
     }
   }
 
-  if(!r.ok || !r.body){
+  // sem streaming (por opção, por fallback ou porque o servidor não mandou corpo)
+  if(!r.ok || !r.body || !body.stream){
     if(!r.ok && r.status!==400) throw new Error('HTTP '+r.status+' — '+(await r.text()).slice(0,200));
+    if(r.ok && !body.stream){
+      const j0=await r.json();
+      const ch0=j0.choices&&j0.choices[0];
+      const t0=(ch0&&ch0.message&&ch0.message.content)||'';
+      if(aoVivo && t0) aoVivo(parcial(jaEscrito+t0));
+      Uso.registrar(JSON.stringify(msgs).length, t0.length);
+      return {texto:t0, finish:(ch0&&ch0.finish_reason)||''};
+    }
     body.stream=false;
-    r=await fetch(c.url,{method:'POST',headers:h,body:JSON.stringify(body)});
+    r=await fetchT(c.url,{method:'POST',headers:h,body:JSON.stringify(body)}, T_CONEXAO);
     if(!r.ok) throw new Error('HTTP '+r.status+' — '+(await r.text()).slice(0,200));
     const j=await r.json();
     const ch=j.choices&&j.choices[0];
     const txt=(ch&&ch.message&&ch.message.content)||'';
+    if(aoVivo && txt) aoVivo(parcial(jaEscrito+txt));
     if(j.usage&&j.usage.prompt_tokens){
       const u=Uso.ler(); u.req++; u.tin+=j.usage.prompt_tokens; u.tout+=(j.usage.completion_tokens||0);
       try{ localStorage.setItem(PREFIX+':uso',JSON.stringify(u)); }catch(e){} painelUso();
@@ -1332,35 +2585,63 @@ async function umaChamada(msgs, aoVivo, jaEscrito){
 
   const charsEnviados=JSON.stringify(msgs).length;
   const reader=r.body.getReader(), dec=new TextDecoder();
-  let buffer='', texto='', finish='', ultimo=0;
-  while(true){
-    const {done,value}=await reader.read();
-    if(done) break;
-    buffer+=dec.decode(value,{stream:true});
-    const linhas=buffer.split('\n');
-    buffer=linhas.pop();
-    for(const l of linhas){
-      const st=l.trim();
-      if(!st.startsWith('data:')) continue;
-      const dados=st.slice(5).trim();
-      if(dados==='[DONE]') continue;
-      try{
-        const o=JSON.parse(dados);
-        const ch=o.choices&&o.choices[0]; if(!ch) continue;
-        if(ch.finish_reason) finish=ch.finish_reason;
-        const d=ch.delta||ch.message;
-        const pedaco=d&&d.content;
-        if(pedaco){
-          texto+=pedaco;
-          const agora=Date.now();
-          if(aoVivo && agora-ultimo>60){ ultimo=agora; aoVivo(parcial(jaEscrito+texto)); }
-        }
-      }catch(e){}
+  let buffer='', texto='', finish='', ultimo=0, morreu='';
+
+  /* vigia: se o texto parar de chegar, corta em vez de ficar pendurado para sempre */
+  const lerComPrazo=()=>Promise.race([
+    reader.read(),
+    new Promise((_,rej)=>setTimeout(()=>rej(new Error('SILENCIO')), T_SILENCIO))
+  ]);
+
+  try{
+    while(true){
+      const {done,value}=await lerComPrazo();
+      if(done) break;
+      buffer+=dec.decode(value,{stream:true});
+      const linhas=buffer.split('\n');
+      buffer=linhas.pop();
+      for(const l of linhas){
+        const st=l.trim();
+        if(!st.startsWith('data:')) continue;
+        const dados=st.slice(5).trim();
+        if(dados==='[DONE]') continue;
+        try{
+          const o=JSON.parse(dados);
+          const ch=o.choices&&o.choices[0]; if(!ch) continue;
+          if(ch.finish_reason) finish=ch.finish_reason;
+          const d=ch.delta||ch.message;
+          const pedaco=d&&d.content;
+          if(pedaco){
+            texto+=pedaco;
+            const agora=Date.now();
+            if(aoVivo && agora-ultimo>60){ ultimo=agora; aoVivo(parcial(jaEscrito+texto)); }
+          }
+        }catch(e){}
+      }
+    }
+  }catch(e){
+    morreu = e.message==='SILENCIO' ? 'silencio' : 'queda';
+    logErro('stream', e.message); falhaStream();
+    try{ reader.cancel(); }catch(x){}
+    /* nada chegou: tenta uma vez sem streaming, que atravessa melhor rede móvel */
+    if(!texto){
+      if(aoVivo) aoVivo(jaEscrito+' (rede instável, refazendo sem streaming…)');
+      body.stream=false;
+      const r2=await fetchT(c.url,{method:'POST',headers:h,body:JSON.stringify(body)}, T_CONEXAO+20000);
+      if(!r2.ok) throw new Error('HTTP '+r2.status+' — '+(await r2.text()).slice(0,160));
+      const j2=await r2.json();
+      const c2=j2.choices&&j2.choices[0];
+      const t2=(c2&&c2.message&&c2.message.content)||'';
+      if(aoVivo && t2) aoVivo(parcial(jaEscrito+t2));
+      Uso.registrar(charsEnviados, t2.length);
+      return {texto:t2, finish:(c2&&c2.finish_reason)||''};
     }
   }
+
   if(aoVivo) aoVivo(parcial(jaEscrito+texto));
+  if(!morreu) sucessoStream();
   Uso.registrar(charsEnviados, texto.length);
-  return {texto, finish};
+  return {texto, finish: morreu ? 'rede' : finish};
 }
 
 /** Chamada completa: continua sozinha se o modelo cortar a cena no meio. */
@@ -1374,7 +2655,7 @@ async function chamarIA(acao, aoVivo){
     'Não resuma, não acelere, não encerre antes da hora. '+
     'O bloco de efeitos no final não conta como parágrafo.';
 
-  const base=[{role:'system',content:REGRAS},
+  const base=[{role:'system',content:regras()},
               {role:'system',content:contexto()},
               {role:'system',content:tamanho},
               ...historicoEnviado(),
@@ -1386,13 +2667,22 @@ async function chamarIA(acao, aoVivo){
       ? base.concat([{role:'assistant',content:texto},
           {role:'user',content:'Continue exatamente de onde parou, na mesma frase se preciso, sem repetir nada do que já escreveu. Feche a cena e termine com o bloco de efeitos entre <<< e >>>.'}])
       : base;
-    const res = await umaChamada(msgs, aoVivo, texto);
+    let res;
+    try{
+      res = await umaChamada(msgs, aoVivo, texto);
+    }catch(e){
+      /* se já veio alguma coisa, aproveita o pedaço em vez de perder a cena inteira */
+      if(texto) { const r0=separar(texto); r0.redeCaiu=true; return r0; }
+      throw e;
+    }
     texto += res.texto;
     finish = res.finish;
     passo++;
   } while(finish==='length' && texto.indexOf('<<<')<0 && passo<4);
 
-  return separar(texto);
+  const out=separar(texto);
+  if(finish==='rede') out.redeCaiu=true;
+  return out;
 }
 
 /* ==========================================================
@@ -1427,8 +2717,10 @@ function aplicar(res){
   const dm=Number(res.moedas)||0;
   if(dm){ d.moedas=Math.max(0,d.moedas+dm); av.push(['Moedas',(dm>0?'+':'')+dm+' cobres','go']); }
 
-  (res.itens_ganhos||[]).forEach(i=>{ i=String(i).slice(0,40); if(i && !d.itens.includes(i)){ d.itens.push(i); av.push(['Item obtido',esc(i),'ok']); }});
-  (res.itens_perdidos||[]).forEach(i=>{ const k=d.itens.indexOf(String(i)); if(k>=0){ d.itens.splice(k,1); av.push(['Item perdido',esc(i),'bad']); }});
+  (res.itens_ganhos||[]).forEach(x=>{ const r=itensAdd(x); if(!r) return;
+    av.push(['Item obtido', esc(r.n)+(r.q>1?' ×'+r.q:'')+(r.novo?'':' (agora ×'+r.total+')'), 'ok']); });
+  (res.itens_perdidos||[]).forEach(x=>{ const r=itensDel(x); if(!r) return;
+    av.push(['Item perdido', esc(r.n)+(r.q>1?' ×'+r.q:'')+(r.acabou?'':' (restam '+r.total+')'), 'bad']); });
 
   if(res.habilidade_nova && String(res.habilidade_nova).trim()){
     const h=String(res.habilidade_nova).trim().slice(0,40);
@@ -1450,7 +2742,54 @@ function aplicar(res){
       leal:leal,
       pistas:(a.pistas||[]).slice(),
       traiu:!!(n.traiu||a.traiu),
+      cond:(function(){ const c=String(n.condicao||'').trim().toLowerCase();
+              return VINCULO[c] ? c : (a.cond||'livre'); })(),
+      rel:a.rel||'',
+      desde:a.desde||d.dia,
       af:Math.max(-5,Math.min(10,(a.af||0)+(Number(n.afinidade)||0))) };
+    /* laço afetivo: só com quem está livre. Propriedade não consente. */
+    if(n.relacao!==undefined && String(n.relacao).trim()!==''){
+      const nr=String(n.relacao).trim().toLowerCase();
+      if(RELACAO[nr] && nr!==(a.rel||'')){
+        const cd=d.npcs[id].cond||'livre';
+        const preso=(cd==='seu_escravo'||cd==='seu_servo'||cd==='refem');
+        if(preso && RELACAO[nr].peso){
+          sys('bad2','⚖  Isso não pode ser firmado',
+            [['Quem',esc(d.npcs[id].nome)],['Condição',VINCULO[cd].r,'bad'],['Laço','recusado','bad']],
+            'Enquanto ela for sua, ninguém — nem ela — consegue separar vontade de medo. Alforrie primeiro. Depois ela escolhe, e aí vale.');
+        } else {
+          d.npcs[id].rel=nr;
+          const R=RELACAO[nr];
+          if(R.peso){
+            const L=lares(), U=UNIAO[d.regiao];
+            const ln=[['Quem',esc(d.npcs[id].nome)],['Laço',R.r,R.c]];
+            if(L.firmes.length>1) ln.push(['Laços firmados',String(L.firmes.length),'dim']);
+            if(L.firmes.length>1 && U && !U.l) ln.push(['Nesta região',' não é reconhecida','bad']);
+            sys('lvl','♥  Laço firmado',ln,
+              L.firmes.length>1
+                ? 'A casa tem mais de um laço agora. Isso não se resolve sozinho.'
+                : 'Ela era livre para ir embora e não foi.');
+            d.memorias.push('Firmou laço com '+d.npcs[id].nome+'.');
+            if(L.firmes.length>1) d.harmonia=Math.max(0,(d.harmonia||70)-12);
+          } else {
+            av.push(['Aproximação',esc(d.npcs[id].nome)+' · '+R.r,'ok']);
+          }
+        }
+      }
+    }
+
+    /* mudou de vínculo: isso é um evento, não um detalhe */
+    if((a.cond||'livre')!==d.npcs[id].cond){
+      const V=VINCULO[d.npcs[id].cond], antesV=VINCULO[a.cond||'livre'];
+      d.npcs[id].desde=d.dia;
+      sys(d.npcs[id].cond==='liberto'?'lvl':'', '⚖  Vínculo mudou',
+        [['Quem',esc(d.npcs[id].nome)],['Antes',antesV.r],['Agora',V.r,V.c],
+         V.g?['Custo diário',V.g+' cobres','bad']:['Custo diário','nenhum']],
+        d.npcs[id].cond==='liberto'
+          ? 'Ela é livre. O que ela fizer a partir de agora é escolha dela.'
+          : V.d);
+      if(d.npcs[id].cond==='liberto') d.memorias.push('Alforriou '+d.npcs[id].nome+'.');
+    }
     if(n.pista && String(n.pista).trim()){
       const p=String(n.pista).trim().slice(0,110);
       if(!d.npcs[id].pistas.includes(p)){
@@ -1547,6 +2886,268 @@ function aplicar(res){
       [['Título',esc(d.missao.titulo)],['Recompensa',esc(d.missao.recompensa),'ok']]);
     d.feitas.push(d.missao.titulo); d.missao=null;
   }
+
+  /* ---- harmonia da casa ---- */
+  if(res.harmonia!==undefined && res.harmonia!==''){
+    const dh2=Math.max(-30,Math.min(30,Number(res.harmonia)||0));
+    if(dh2){
+      const ant=d.harmonia||70;
+      d.harmonia=Math.max(0,Math.min(100,ant+dh2));
+      if(d.harmonia<30 && ant>=30)
+        sys('bad2','A casa está rachando',[['Harmonia',d.harmonia+'/100','bad']],
+          'Alguém vai dar um ultimato, ir embora, ou fazer coisa pior.');
+      else av.push(['Harmonia da casa',(dh2>0?'+':'')+dh2+' ('+d.harmonia+'/100)',dh2<0?'bad':'ok']);
+    }
+  }
+
+  /* ---- domínio: terra, título e obra ---- */
+  if(res.dominio && typeof res.dominio==='object' && (res.dominio.nome||d.dominio)){
+    const D=d.dominio||{n:'',reg:d.regiao,forte:0,legit:'',povo:0,renda:0,obras:[],desde:d.dia,ameaca:''};
+    const novo=!d.dominio;
+    const tp=String(res.dominio.tipo||'').trim().toLowerCase();
+    const fama=repDe(d.regiao).f;
+    /* trava: ninguém vira senhor de terras sendo um desconhecido */
+    if(novo && fama<30 && tp!=='conquistado' && tp!=='vazio'){
+      sys('bad2','Terra negada',[['Fama na região',fama+'/100','bad']],
+        'Ninguém entrega terra a um nome que não conhece. Faça-se notar primeiro.', 1);
+    } else {
+      if(res.dominio.nome) D.n=String(res.dominio.nome).slice(0,46);
+      if(LEGIT[tp]) D.legit=tp;
+      if(novo){ D.reg=d.regiao; D.desde=d.dia; }
+      if(res.dominio.povo!==undefined&&res.dominio.povo!=='') D.povo=Math.max(0,Math.min(999999,Number(res.dominio.povo)||0));
+      if(res.dominio.renda!==undefined&&res.dominio.renda!=='') D.renda=Math.max(0,Math.min(99999,Number(res.dominio.renda)||0));
+      if(res.dominio.ameaca!==undefined) D.ameaca=String(res.dominio.ameaca||'').slice(0,120);
+      if(novo && res.dominio.oculto){ D.oculto=true; D.subt=true; D.sigilo=100; }
+      const dsg=Number(res.dominio.sigilo);
+      if(!isNaN(dsg) && dsg && D.oculto){
+        const ant=D.sigilo===undefined?100:D.sigilo;
+        D.sigilo=Math.max(0,Math.min(100,ant+dsg));
+        if(D.sigilo<=0 && ant>0){
+          D.oculto=false; D.legit=D.legit||'vazio';
+          sys('bad2','✖  O REFÚGIO FOI ACHADO',
+            [['Lugar',esc(D.n||'seu esconderijo')],['Sigilo','0/100','bad']],
+            'Gente demais sabia. Agora é só mais um lugar no mapa de alguém.');
+          d.memorias.push('O refúgio '+(D.n||'oculto')+' deixou de ser segredo.');
+        } else if(D.sigilo<30 && ant>=30){
+          sys('bad2','Alguém andou perguntando',[['Sigilo',D.sigilo+'/100','bad']],
+            'Primeiro um caçador curioso. Depois um mapa errado numa taverna. Depois alguém com selo.');
+        } else if(dsg<0) av.push(['Sigilo',dsg+' ('+D.sigilo+'/100)','bad']);
+      }
+      if(res.dominio.obra && String(res.dominio.obra).trim()){
+        const ob=String(res.dominio.obra).trim().slice(0,60);
+        if(!D.obras.includes(ob)){ D.obras.push(ob); if(D.obras.length>12) D.obras.shift();
+          av.push(['Obra concluída',esc(ob),'go']); }
+      }
+      const ESC = D.subt ? BUNKER : FORTE;
+      const teto = ESC.length-1;
+      const nf=Math.max(0,Math.min(teto,Number(res.dominio.forte)));
+      if(!isNaN(nf) && res.dominio.forte!==undefined && res.dominio.forte!=='' && nf>(D.forte||0)){
+        const salto=nf-(D.forte||0);
+        D.forte=(D.forte||0)+1;               /* um degrau por vez, sempre */
+        const F=ESC[D.forte];
+        const ln=[['Domínio',esc(D.n||'sem nome')],['Obra',F.n,F.c],
+                  ['Custou','~'+F.moeda+' coroas · '+F.dias+' dias · '+F.bracos+' braços','dim']];
+        if(D.oculto && F.sig){
+          D.sigilo=Math.max(0,(D.sigilo===undefined?100:D.sigilo)+F.sig);
+          ln.push(['Sigilo',F.sig+' ('+D.sigilo+'/100)','bad']);
+        }
+        sys('lvl',(D.subt?'⛏  ':'🏰  ')+F.n+(D.subt?' pronta':' de pé'), ln,
+          (salto>1?F.d+' (Um degrau por vez — o resto ainda é canteiro de obra.)':F.d)+
+          (D.oculto&&F.bracos>5?' Cada braço que cavou aqui sabe onde fica.':''));
+        d.memorias.push((D.subt?'Escavou ':'Ergueu ')+F.n.toLowerCase()+' em '+(D.n||'seu domínio')+'.');
+      }
+      d.dominio=D;
+      if(novo){
+        const L=LEGIT[D.legit]||LEGIT.vazio;
+        sys('lvl',D.oculto?'⛏  REFÚGIO ESTABELECIDO':'🏳  DOMÍNIO RECONHECIDO',
+          D.oculto
+            ? [['Lugar',esc(D.n||'sem nome')],['Região',REGIOES[D.reg]?REGIOES[D.reg].n:D.reg],
+               ['Sigilo',(D.sigilo===undefined?100:D.sigilo)+'/100','ok'],['Quem sabe','só você','ok']]
+            : [['Nome',esc(D.n||'sem nome')],['Região',REGIOES[D.reg]?REGIOES[D.reg].n:D.reg],
+               ['Título',L.r,L.c],['Gente na terra',String(D.povo)]],
+          D.oculto
+            ? 'Sem gente, sem renda, sem tributo — e sem ninguém batendo à porta. O sigilo só desce.'
+            : L.d);
+        d.memorias.push('Passou a ser senhor de '+(D.n||'uma terra')+'.');
+      }
+    }
+  }
+
+  /* ---- lugar limpo não rende de novo ---- */
+  if(res.saqueado && String(res.saqueado).trim()){
+    const lg=String(res.saqueado).trim().slice(0,46), rg=d.regiao||'—';
+    if(!d.saques) d.saques={};
+    if(!d.saques[rg]) d.saques[rg]=[];
+    if(!d.saques[rg].some(x=>x.toLowerCase()===lg.toLowerCase())){
+      d.saques[rg].push(lg);
+      if(d.saques[rg].length>25) d.saques[rg].shift();
+      av.push(['Lugar vasculhado',esc(lg),'dim']);
+    }
+  }
+
+  /* ---- oficina e escada industrial ---- */
+  if(res.tec && typeof res.tec==='object'){
+    if(!d.tec) d.tec={niv:0,oficina:'',feitos:[]};
+    if(res.tec.oficina && String(res.tec.oficina).trim() && !d.tec.oficina)
+      d.tec.oficina=String(res.tec.oficina).trim().slice(0,50);
+    const nt=Number(res.tec.nivel);
+    if(!isNaN(nt) && res.tec.nivel!==undefined && res.tec.nivel!=='' && nt>(d.tec.niv||0)){
+      const alvo=Math.min(TEC.length-1,(d.tec.niv||0)+1);   /* um degrau por vez */
+      const T=TEC[alvo], desp=(d.dom&&d.dom.desp)||0;
+      if(desp < T.desp){
+        sys('bad2','A peça não fecha',
+          [['Degrau tentado',T.n,'bad'],['Dom exigido',T.desp+'/100','bad'],['Dom atual',desp+'/100','bad']],
+          'Você sabe como deveria ser. Suas mãos ainda não sabem, e a peça sai torta.', 1);
+      } else {
+        d.tec.niv=alvo;
+        sys('lvl','⚙  '+T.n,
+          [['Degrau',alvo+'/6 · '+T.n,T.c],['Custou','~'+T.moeda+' coroas · '+T.dias+' dias','dim'],
+           ['Agora dá para fazer',T.faz,'go']], T.pre);
+        d.memorias.push('Chegou ao degrau industrial: '+T.n+'.');
+      }
+    }
+    if(res.tec.feito && String(res.tec.feito).trim()){
+      const ft=String(res.tec.feito).trim().slice(0,60);
+      if(!d.tec.feitos.includes(ft)){
+        d.tec.feitos.push(ft);
+        if(d.tec.feitos.length>20) d.tec.feitos.shift();
+        av.push(['Construído',esc(ft),'go']);
+      }
+    }
+  }
+
+  /* ---- dom adormecido ---- */
+  if(res.dom && typeof res.dom==='object'){
+    if(!d.dom) d.dom={nome:'',desp:0,custo:'',sinais:[]};
+    const dd=Math.max(-5,Math.min(10,Number(res.dom.desperto)||0));
+    const antes=d.dom.desp||0;
+    if(res.dom.nome && String(res.dom.nome).trim() && !d.dom.nome){
+      d.dom.nome=String(res.dom.nome).trim().slice(0,44);
+      sys('lvl','✦  O dom tem nome',[['Dom',esc(d.dom.nome),'go']],
+        'A marca no antebraço aqueceu quando você entendeu.');
+    }
+    if(res.dom.custo && String(res.dom.custo).trim() && !d.dom.custo){
+      d.dom.custo=String(res.dom.custo).trim().slice(0,90);
+      sys('bad2','O que ele cobra',[['Custo',esc(d.dom.custo),'bad']],
+        'Nada aqui sai de graça. Nem o que é seu.');
+    }
+    if(res.dom.sinal && String(res.dom.sinal).trim()){
+      const sn=String(res.dom.sinal).trim().slice(0,110);
+      if(!d.dom.sinais.includes(sn)){
+        d.dom.sinais.push(sn);
+        if(d.dom.sinais.length>8) d.dom.sinais.shift();
+        sys('','Alguma coisa em você',[['Sinal',esc(sn)]],
+          d.dom.nome?'':'Você culparia o cansaço, se fosse a primeira vez.', 1);
+      }
+    }
+    /* --- alívio: custo encolhe, muda de dono, ou vira hipoteca --- */
+    if(res.dom.ancora && String(res.dom.ancora).trim() && !d.dom.anc){
+      d.dom.anc=String(res.dom.ancora).trim().slice(0,50); d.dom.des=0;
+    }
+    if(res.dom.selo && String(res.dom.selo).trim() && !d.dom.sel)
+      d.dom.sel=String(res.dom.selo).trim().slice(0,50);
+    if(res.dom.divida && String(res.dom.divida).trim() && !d.dom.div)
+      d.dom.div=String(res.dom.divida).trim().slice(0,110);
+    if(res.dom.alivio!==undefined && res.dom.alivio!==''){
+      const na=Math.max(0,Math.min(3,Number(res.dom.alivio)||0)), aa=d.dom.al||0;
+      /* só sobe por este campo. Rebaixar é decisão do jogo (âncora quebrada),
+         nunca do modelo — senão um "alivio":0 copiado do template zera o progresso. */
+      if(na>aa){
+        /* Calejado exige 50 de despertar; Ancorado exige âncora; Selado exige pacto */
+        const podeSubir = (na===1) ? (d.dom.desp||0)>=45
+                        : (na===2) ? !!(d.dom.anc || (res.dom.ancora||'').trim())
+                        : !!(d.dom.sel || (res.dom.selo||'').trim());
+        if(podeSubir){
+          d.dom.al=na; const A=ALIVIO[na];
+          const ln=[['Alívio',na+'/3 · '+A.n,A.c]];
+          if(na===2&&d.dom.anc) ln.push(['Âncora',esc(d.dom.anc),'ok']);
+          if(na===3&&d.dom.sel) ln.push(['Selado por',esc(d.dom.sel),'bad']);
+          if(na===3&&d.dom.div) ln.push(['Dívida',esc(d.dom.div),'bad']);
+          sys('lvl','✦  Alívio — '+A.n, ln,
+            na===3?'Isso não é imunidade. É hipoteca, e a hipoteca tem credor.':A.d);
+        }
+      }
+    }
+    /* --- desgaste da âncora --- */
+    const dg=Math.max(0,Math.min(40,Number(res.dom.desgaste)||0));
+    if(dg && d.dom.anc){
+      const aD=d.dom.des||0;
+      d.dom.des=Math.min(100,aD+dg);
+      if(aD<70 && d.dom.des>=70)
+        sys('bad2','A âncora está cedendo',[['Âncora',esc(d.dom.anc)],['Desgaste',d.dom.des+'/100','bad']],
+          'Ela não foi feita para aguentar isso para sempre.');
+      if(d.dom.des>=100){
+        const volta=Math.max(4,Math.round(d.hpMax*0.3));
+        d.hp=Math.max(1,d.hp-volta);
+        sys('bad2','✖  A ÂNCORA QUEBROU',
+          [['Âncora',esc(d.dom.anc),'bad'],['Custo acumulado','volta tudo de uma vez','bad'],
+           ['Vida','-'+volta,'bad'],['Alívio','rebaixado para 1 · Calejado','bad']],
+          'O que ela segurava por você, você paga agora.');
+        d.memorias.push('A âncora ('+d.dom.anc+') quebrou, e o custo do dom voltou todo de uma vez.');
+        d.dom.anc=''; d.dom.des=0; d.dom.al=Math.min(d.dom.al||0,1);
+      }
+    }
+    if(dd){
+      d.dom.desp=Math.max(0,Math.min(100,antes+dd));
+      const fa=domFase(antes), fd=domFase(d.dom.desp);
+      if(fd.n!==fa.n) sys('lvl','✦  Dom — '+fd.n,
+        [['Despertar',d.dom.desp+'/100','go'],['Estado',fd.n,'go']], fd.d);
+      else av.push(['Despertar','+'+dd+' ('+d.dom.desp+'/100)','ok']);
+    }
+  }
+
+  /* ---- relíquias ---- */
+  if(res.reliquia && res.reliquia.nome && String(res.reliquia.nome).trim()){
+    if(!Array.isArray(d.reliquias)) d.reliquias=[];
+    const rn=String(res.reliquia.nome).trim().slice(0,46);
+    if(!d.reliquias.some(x=>x.n===rn)){
+      const k=Math.max(0,Math.min(3,Number(res.reliquia.nivel)||0));
+      const r={ n:rn, k:k,
+        p:String(res.reliquia.poder||'').slice(0,140),
+        c:String(res.reliquia.preco||'').slice(0,110),
+        o:String(res.reliquia.dono||'').slice(0,60), dia:d.dia };
+      d.reliquias.push(r);
+      if(d.reliquias.length>14) d.reliquias.shift();
+      const L=RELIQ[k];
+      const linhas=[['Achado',esc(rn),'go'],['Degrau',L.n,L.c]];
+      if(r.p) linhas.push(['Poder',esc(r.p),'ok']);
+      if(r.c) linhas.push(['Preço',esc(r.c),'bad']);
+      if(r.o) linhas.push(['Dono anterior',esc(r.o),'bad']);
+      sys(k>=2?'lvl':'','✧  '+(k>=2?'Relíquia':'Item de poder'),linhas,
+        k>=2?'Poder de verdade sempre vem com dono e com conta.':L.d);
+    }
+  }
+
+  /* ---- criaturas e lendas ---- */
+  if(res.criatura && (res.criatura.id||res.criatura.nome)){
+    if(!d.bestia) d.bestia={};
+    const cid=String(res.criatura.id||res.criatura.nome).toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'').slice(0,20);
+    if(cid){
+      const est=String(res.criatura.estado||'rumor').toLowerCase().trim();
+      const ok=['rumor','avistada','ferida','morta','afugentada','aliada','domada'];
+      const e=ok.includes(est)?est:'rumor';
+      const base=LENDAS[cid];
+      const a=d.bestia[cid];
+      d.bestia[cid]={
+        n:String(res.criatura.nome||(base?base.n:cid)).slice(0,44),
+        e:e, lenda:!!base,
+        notas:((a&&a.notas)||[]).concat(
+          res.criatura.nota?[String(res.criatura.nota).slice(0,110)]:[]).slice(-5),
+        dia:d.dia };
+      if(!a || a.e!==e){
+        const rot={rumor:'Rumor ouvido',avistada:'Avistada',ferida:'Ferida',morta:'Abatida',
+          afugentada:'Afugentada',aliada:'Aliada',domada:'DOMADA'}[e];
+        const cor=(e==='morta'||e==='domada'||e==='aliada')?'go':(e==='rumor'?'dim':'ok');
+        const ln=[['Criatura',esc(d.bestia[cid].n),cor],['Estado',rot,cor]];
+        if(base) ln.push(['Perigo',base.pg+'/5',base.pg>=4?'bad':'']);
+        if(res.criatura.nota) ln.push(['Nota',esc(String(res.criatura.nota).slice(0,110))]);
+        sys(e==='domada'||e==='morta'?'lvl':'', (base?'☒  Lenda':'☒  Bestiário'), ln,
+          e==='rumor'?'Anotado. Rumor não é prova.':'', e==='rumor'?1:2);
+      }
+    }
+  }
+
   if(res.memoria && String(res.memoria).trim()) d.memorias.push(String(res.memoria).trim().slice(0,160));
 
   // nível
@@ -1577,11 +3178,57 @@ function aplicar(res){
    TURNO
    ========================================================== */
 let ocupado=false;
-async function jogar(txt){
+/* ---------- DESFAZER / REFAZER A ÚLTIMA CENA ---------- */
+function chaveUndo(){ return PREFIX+':undo'+Save.slot; }
+function guardarUndo(acao,oculto){
+  try{ localStorage.setItem(chaveUndo(), JSON.stringify({acao:acao, oculto:!!oculto, snap:Save.d})); }
+  catch(e){ /* save grande demais: refazer fica indisponível */ }
+}
+function lerUndo(){
+  try{ return JSON.parse(localStorage.getItem(chaveUndo())||'null'); }catch(e){ return null; }
+}
+function limparUndo(){ try{ localStorage.removeItem(chaveUndo()); }catch(e){} barraCena(); }
+
+/** barra com Refazer / Continuar embaixo da última cena */
+function barraCena(cortada){
+  const b=document.getElementById('cenaAcoes'); if(!b) return;
+  b.innerHTML='';
+  const u=lerUndo();
+  if(!u || Save.d.fase!=='jogo' || !temIA() || ocupado){ b.classList.remove('on'); return; }
+  b.classList.add('on');
+
+  const bt=(txt,cls,fn)=>{ const x=document.createElement('button');
+    x.textContent=txt; if(cls) x.className=cls; x.onclick=fn; b.appendChild(x); return x; };
+
+  bt(cortada?'▶ Continuar (a cena ficou pela metade)':'▶ Continuar a cena',
+     cortada?'urg':'', continuarCena);
+  bt('🔄 Refazer de outro jeito','', refazerCena);
+}
+async function continuarCena(){
+  if(ocupado) return;
+  await jogar('Continue exatamente de onde a cena parou, na mesma frase se for o caso, sem repetir '+
+    'nada do que já escreveu e sem recomeçar. Leve a cena até o fim.', {oculto:true, semUndo:true});
+}
+async function refazerCena(){
+  if(ocupado) return;
+  const u=lerUndo(); if(!u) return;
+  if(!confirm('Apagar a última cena e pedir outra versão para a IA?\n\nO que você digitou é reenviado igual; a IA escreve de novo, diferente.')) return;
+  Save.d=u.snap;
+  const base=Save.novo(); for(const k in base) if(Save.d[k]===undefined) Save.d[k]=base[k];
+  Save.gravar(); redesenhar();
+  await jogar(u.acao, {oculto:u.oculto});
+}
+
+async function jogar(txt, opts){
+  opts=opts||{};
   if(ocupado||!txt.trim()) return;
   ocupado=true; document.getElementById('enviar').disabled=true;
+  document.getElementById('cenaAcoes').classList.remove('on');
 
-  bloco('acao', esc(txt));
+  /* guarda o estado ANTES da jogada, para poder refazer */
+  if((Save.d.fase==='jogo'||Save.d.fase==='origem') && !opts.semUndo) guardarUndo(txt, opts.oculto);
+
+  if(!opts.oculto) bloco('acao', esc(txt));
 
   if(Save.d.fase==='criacao'){ await criar(txt); Save.gravar();
     ocupado=false; document.getElementById('enviar').disabled=false; return; }
@@ -1627,7 +3274,7 @@ async function jogar(txt){
     } else {
       res=offline(acao); await new Promise(r=>setTimeout(r,250));
     }
-  }catch(err){ res={narracao:'',erro:'Não consegui falar com o modelo. '+err.message}; }
+  }catch(err){ res={narracao:'', erro:'⚠️ '+erroAmigavel(err)}; }
 
   if(res.erro){ esperando.remove(); bloco('sis',res.erro,false); }
   else if(transmitiu){
@@ -1640,9 +3287,18 @@ async function jogar(txt){
   }
   aplicar(res);
   if(res.dica) bloco('sis',res.dica,false);
+  if(res.redeCaiu) bloco('sis','📶 A conexão caiu no meio da cena — salvei o trecho que chegou. '+
+    'Toque em <b>▶ Continuar</b> aqui embaixo para a IA terminar de onde parou.',false);
 
   atualizarTopo(); dicas(); painelFicha(); painelMochila(); painelMundo(); Save.gravar();
   ocupado=false; document.getElementById('enviar').disabled=false;
+
+  /* cena cortada no meio? último caractere não é pontuação de fim */
+  const fim=String(res.narracao||'').trim().slice(-1);
+  const cortada=(!!res.narracao && !/[.!?…"”»)\]]/.test(fim)) || !!res.redeCaiu || !!res.erro;
+  barraCena(cortada);
+  if(cortada) bloco('sis','✂️ A resposta parece ter sido cortada. Toque em <b>▶ Continuar</b> '+
+    'logo abaixo para a IA terminar de onde parou — ou em <b>🔄 Refazer</b> para outra versão.',false);
 }
 
 /* ==========================================================
@@ -1693,6 +3349,7 @@ function painelFicha(){
       '<div class="ln"><span>Região</span><b>'+(REGIOES[d.regiao]?esc(REGIOES[d.regiao].n):'desconhecida')+'</b></div>'+
       '<div class="ln"><span>Tempo</span><b>Dia '+d.dia+' · '+hhmm()+'</b></div>'+
       '<div class="ln"><span>Idioma local</span><b class="'+(d.idioma>=50?'ok':'bad')+'">'+d.idioma+'%</b></div>'+
+      '<div class="ln"><span>Tratamento</span><b>'+GEN[generoDe()]+'</b></div>'+
       '<div class="ln"><span>Condição</span><b class="'+((d.condicao||'livre')==='livre'?'ok':'bad')+'">'+
         rot0(d.condicao||'livre')+(d.dono?' · '+esc(d.dono):'')+'</b></div>'+
       (function(){const r=repDe(d.regiao),L=repLabel(r.f,r.h);
@@ -1737,13 +3394,94 @@ function painelFicha(){
 }
 
 /* ---------- mochila ---------- */
-const ICONES=[[/(espada|lâmina|lamina|adaga|faca|punhal|sabre)/,'🗡️'],[/(escudo|broquel)/,'🛡️'],
-  [/(arco|flecha|besta)/,'🏹'],[/(poção|pocao|frasco|elixir|remédio|remedio)/,'🧪'],
-  [/(moeda|cobre|prata|coroa|ouro|bolsa)/,'🪙'],[/(pão|pao|comida|carne|queijo|maçã|maca|ração|racao)/,'🍞'],
-  [/(mapa|pergaminho|carta|livro|diário|diario|bilhete)/,'📜'],[/(chave|cadeado)/,'🗝️'],
-  [/(corda|cordão|gancho)/,'🪢'],[/(tocha|lampião|lampiao|vela|lanterna)/,'🔥'],
-  [/(anel|amuleto|colar|pedra|cristal|gema|talism)/,'💎'],[/(capa|manto|bota|roupa|armadura|elmo|luva)/,'🧥'],
-  [/(osso|caveira|crânio|cranio|garra|dente)/,'🦴'],[/(erva|planta|flor|raiz|semente)/,'🌿']];
+/* ---------- ícones da mochila ----------
+   casamento por PALAVRA INTEIRA (+ plural), para "saco" não virar "aço"
+   nem "garrafa" virar "garra". Os grupos mais específicos vêm primeiro. */
+const ICONES_DEF=[
+  ['pena de escrever|pena de ganso|tinta|tinteiro|papel|selo de cera|cera de lacre','🖋️'],
+  ['espada|lâmina|lamina|adaga|faca|punhal|sabre|machado|lança|lanca|maça|maca de guerra','🗡️'],
+  ['escudo|broquel|pavês|paves','🛡️'],
+  ['arco|flecha|virote|besta|aljava|corda de arco','🏹'],
+  ['poção|pocao|poções|pocoes|frasco|elixir|remédio|remedio|tônico|tonico','🧪'],
+  ['veneno|ácido|acido|antídoto|antidoto|ungüento|unguento|bálsamo|balsamo|bandagem|atadura|emplastro|salitre|enxofre|pólvora|polvora|fulminato','⚗️'],
+  ['mel|favo|colmeia|própolis|propolis|cera de abelha|geleia','🍯'],
+  ['moeda|cobre|prata|coroa|ouro|bolsa|escritura|título|titulo','🪙'],
+  ['couro|couros|pele|peles|pelego|velo','🧵'],
+  ['pão|pao|pães|paes|comida|carne|queijo|maçã|maca|maçãs|ração|racao|peixe|fruta|sopa|biscoito|lebre|perdiz|javali|veado|rena|foca|caranguejo|marisco|ovo de ave|toucinho|defumad','🍞'],
+  ['garrafa|odre|cantil|cerveja|vinho|hidromel|aguardente|bebida|água|agua|leite','🍶'],
+  ['saco|farinha|grão|grao|grãos|trigo|cevada|sal|açúcar|acucar|especiaria|tempero','🧂'],
+  ['mapa|pergaminho|carta|livro|diário|diario|bilhete|tratado|manual|contrato|nota','📜'],
+  ['chave|cadeado|fechadura|gazua','🗝️'],
+  ['corda|cordão|cordao|barbante|gancho|corrente','🪢'],
+  ['rede|armadilha|laço|laco|anzol|isca|alçapão|alcapao','🕸️'],
+  ['tocha|lampião|lampiao|vela|lanterna|lamparina|archote|fogo|isqueiro|pederneira|sebo|gordura|óleo|oleo|resina|breu|turfa','🔥'],
+  ['erva|ervas|planta|flor|flores|raiz|semente|sementes|folha|cogumelo|musgo|casca|alga|algas|líquen|liquen|junco|salicórnia|salicornia|camomila|arruda|visgo|linho','🌿'],
+  ['anel|anéis|aneis|amuleto|colar|bracelete|pedra|cristal|cristais|gema|joia|jóia|talismã|talisma|relíquia|reliquia|pérola|perola|âmbar|ambar|marfim|obsidiana','💎'],
+  ['capa|manto|bota|botas|roupa|armadura|elmo|luva|luvas|cinto|túnica|tunica|calça|calca|camisa|chapéu|chapeu','🧥'],
+  ['agulha|linha|pano|tecido|lã|seda|couro|novelo|sabão|sabao|escova','🧵'],
+  ['martelo|bigorna|alicate|serra|formão|formao|pá|enxada|ferramenta|cinzel|lima|broca|pinça|pinca|fole','🔨'],
+  ['lingote|minério|minerio|ferro|aço|aco|bronze|estanho|cobre bruto|carvão|carvao|prego|arame|sucata','⛓️'],
+  ['tábua|tabua|madeira|tronco|viga|haste|cabo de madeira|galho|estaca','🪵'],
+  ['osso|ossos|caveira|crânio|cranio|garra|garras|dente|dentes|chifre|presa|escama|pena|penas|couro cru','🦴'],
+  ['lente|vidro|espelho|ampulheta|bússola|bussola|balança|balanca|luneta','🔭'],
+  ['cabeça|cabeca|troféu|trofeu|orelha|escalpo|emblema|insígnia|insignia|prova','🏆'],
+  ['ovo|ovos|ninho|cria|filhote|muda','🥚']
+];
+/* \b palavra \b, aceitando plural simples */
+const ICONES=ICONES_DEF.map(([toks,ic])=>[
+  new RegExp('(?:^|[^\\p{L}\\p{N}])(?:'+toks+')(?:s|es)?(?![\\p{L}\\p{N}])','iu'), ic]);
+/* ---------- inventário com quantidade ----------
+   guardado como [{n:'faca enferrujada', q:1}, ...].
+   aceita entrada como texto ("3 flechas", "flechas x3") ou {nome,qtd}. */
+function itemParse(x){
+  if(x && typeof x==='object'){
+    const n=String(x.nome||x.n||'').trim().slice(0,40);
+    const q=Math.max(1,Math.min(999,Math.round(Number(x.qtd||x.q)||1)));
+    return n?{n:n,q:q}:null;
+  }
+  let t=String(x||'').trim().slice(0,46); if(!t) return null;
+  let q=1, m;
+  if((m=t.match(/^(\d{1,3})\s*[x×]?\s+(.+)$/))){ q=+m[1]; t=m[2]; }
+  else if((m=t.match(/^(.+?)\s*[x×]\s*(\d{1,3})$/))){ t=m[1]; q=+m[2]; }
+  else if((m=t.match(/^(.+?)\s*\((\d{1,3})\)$/))){ t=m[1]; q=+m[2]; }
+  t=t.trim().slice(0,40);
+  return t?{n:t, q:Math.max(1,Math.min(999,q))}:null;
+}
+/** compara nomes ignorando acento, caixa e plural simples */
+function itemChave(n){
+  return String(n).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9 ]/g,'').replace(/s\b/g,'').replace(/\s+/g,' ').trim();
+}
+function itemAchar(nome){
+  const k=itemChave(nome);
+  return (Save.d.itens||[]).findIndex(o=>itemChave(o.n)===k);
+}
+/** soma à pilha. devolve {n,q,novo,total} ou null */
+function itensAdd(x){
+  const p=itemParse(x); if(!p) return null;
+  const d=Save.d; if(!Array.isArray(d.itens)) d.itens=[];
+  const i=itemAchar(p.n);
+  if(i>=0){ d.itens[i].q=Math.min(999,(d.itens[i].q||1)+p.q);
+            return {n:d.itens[i].n, q:p.q, novo:false, total:d.itens[i].q}; }
+  if(d.itens.length>=60) return null;          /* teto de segurança */
+  d.itens.push({n:p.n,q:p.q});
+  return {n:p.n, q:p.q, novo:true, total:p.q};
+}
+/** tira da pilha. devolve {n,q,total,acabou} ou null se não tinha */
+function itensDel(x){
+  const p=itemParse(x); if(!p) return null;
+  const d=Save.d; const i=itemAchar(p.n); if(i<0) return null;
+  const o=d.itens[i], tira=Math.min(o.q, p.q);
+  o.q-=tira;
+  const r={n:o.n, q:tira, total:o.q, acabou:o.q<=0};
+  if(o.q<=0) d.itens.splice(i,1);
+  return r;
+}
+function itensTotal(){ return (Save.d.itens||[]).reduce((s,o)=>s+(o.q||1),0); }
+/** texto para a IA: "faca enferrujada, poção de cura x5" */
+function itensTxt(){
+  return (Save.d.itens||[]).map(o=>o.n+((o.q||1)>1?' x'+o.q:'')).join(', ');
+}
 function iconeDe(nome){
   const n=String(nome).toLowerCase();
   for(const [re,ic] of ICONES) if(re.test(n)) return ic;
@@ -1753,11 +3491,14 @@ function painelMochila(){
   const d=Save.d;
   document.getElementById('bolsa').innerHTML=
     '<div class="stat"><span>Moedas</span><b style="color:var(--ouro)">'+d.moedas+' cobres</b></div>'+
-    '<div class="stat"><span>Itens</span><b>'+d.itens.length+'</b></div>'+
+    '<div class="stat"><span>Itens</span><b>'+itensTotal()+
+      (d.itens.length!==itensTotal()?' <span style="color:var(--dim);font-weight:400">em '+d.itens.length+' pilhas</span>':'')+'</b></div>'+
     '<div class="stat"><span>Habilidades</span><b>'+d.habilidades.length+'</b></div>';
   const box=document.getElementById('listaItens');
   box.innerHTML = d.itens.length
-    ? d.itens.map(i=>'<div class="item"><div class="ic">'+iconeDe(i)+'</div><div class="nm">'+esc(i)+'</div></div>').join('')
+    ? d.itens.map(o=>'<div class="item"><div class="ic">'+iconeDe(o.n)+'</div>'+
+        '<div class="nm">'+esc(o.n)+'</div>'+
+        ((o.q||1)>1?'<div class="qt">×'+o.q+'</div>':'')+'</div>').join('')
     : '<div class="vazio">A mochila está vazia.<br>Itens que você encontrar na história aparecem aqui sozinhos.</div>';
 }
 
@@ -1813,6 +3554,95 @@ function mostrarRegiao(){
   document.getElementById('regAtual').innerHTML=h+'</div>';
 }
 
+
+/* ---------- painel do dom / bestiário ---------- */
+const EST_ROT={rumor:['Rumor','dim'],avistada:['Avistada','ok'],ferida:['Ferida','ok'],
+  morta:['Abatida','go'],afugentada:['Afugentada','ok'],aliada:['Aliada','go'],domada:['Domada','go']};
+function pips(n){ let s=''; for(let i=1;i<=5;i++) s+= i<=n?'◆':'<i>◇</i>'; return s; }
+function painelBestia(){
+  const d=Save.d;
+  /* dom */
+  const dm=d.dom||{desp:0,sinais:[]}, f=domFase(dm.desp||0);
+  document.getElementById('boxDom').innerHTML=
+    '<h5 style="margin:0 0 4px;font-size:15px">'+(dm.nome?esc(dm.nome):'<span style="color:var(--dim)">Ainda sem nome</span>')+'</h5>'+
+    '<div class="bar"><i style="width:'+(dm.desp||0)+'%"></i></div>'+
+    '<div class="lbl"><span>'+f.n+'</span><span>'+(dm.desp||0)+'/100</span></div>'+
+    '<p class="sobre">'+f.d+'</p>'+
+    (dm.custo?'<p class="sobre" style="color:#ff8496">Custo de uso: '+esc(dm.custo)+'</p>':'')+
+    (function(){ const A=ALIVIO[dm.al||0];
+      let h='<div style="margin-top:12px;padding-top:11px;border-top:1px solid var(--line)">'+
+        '<div class="lbl" style="margin:0 0 5px"><span>Alívio do custo</span>'+
+        '<span class="tag '+A.c+'">'+(dm.al||0)+'/3 · '+A.n+'</span></div>'+
+        '<p class="sobre" style="margin:0">'+A.d+'</p>';
+      if(dm.anc){ const p=dm.des||0;
+        h+='<div class="lbl" style="margin-top:9px"><span>Âncora: '+esc(dm.anc)+'</span>'+
+           '<span class="'+(p>=70?'bad':'')+'">desgaste '+p+'/100</span></div>'+
+           '<div class="bar"><i style="width:'+p+'%;background:'+(p>=70?'#ff6b81':'linear-gradient(90deg,var(--accent),var(--accent2))')+'"></i></div>'+
+           (p>=70?'<p class="sobre" style="color:#ff8496;margin-top:5px">Ela está cedendo. Se quebrar, o custo acumulado volta todo de uma vez.</p>':'');
+      }
+      if(dm.sel) h+='<p class="nota" style="margin-top:9px">Selado por <b>'+esc(dm.sel)+'</b>'+
+        (dm.div?' — dívida em aberto: '+esc(dm.div):'')+'</p>';
+      return h+'</div>'; })()+
+    ((dm.sinais&&dm.sinais.length)
+      ? '<div style="margin-top:9px">'+dm.sinais.map(s=>'<span class="pista">'+esc(s)+'</span>').join('')+'</div>'
+      : '<p class="sobre">Nenhum sinal ainda. Perigo, treino e relíquias acordam o que está dormindo.</p>');
+  /* oficina / escada industrial */
+  const bt=document.getElementById('boxTec');
+  if(bt){ const t=d.tec||{niv:0,feitos:[]}, T=TEC[t.niv||0], N=TEC[(t.niv||0)+1];
+    bt.innerHTML =
+      '<div class="lbl" style="margin:0 0 6px"><span>Degrau industrial</span>'+
+        '<span class="tag '+T.c+'">'+(t.niv||0)+'/6 · '+T.n+'</span></div>'+
+      '<div class="bar"><i style="width:'+((t.niv||0)/6*100)+'%"></i></div>'+
+      (t.oficina?'<p class="nota" style="margin-top:8px">Oficina em <b>'+esc(t.oficina)+'</b></p>':'')+
+      '<p class="sobre"><b>Hoje dá para fazer:</b> '+T.faz+'</p>'+
+      (N?'<p class="nota"><b>Próximo: '+N.n+'</b> — '+N.pre+'</p>'+
+         '<p class="nota">Custo: ~'+N.moeda+' coroas · '+N.dias+' dias · dom desperto em '+N.desp+'/100'+
+         ' (você tem '+((d.dom&&d.dom.desp)||0)+').</p>'
+        :'<p class="nota">Topo da escada. Valdrath não é mais a mesma ilha.</p>')+
+      ((t.feitos&&t.feitos.length)?'<p class="nota">Já construiu: '+t.feitos.map(esc).join(' · ')+'</p>':'')+
+      '<p class="sobre" style="color:var(--dim);font-size:12px;margin-top:9px">Munição em quantidade só no degrau 5. Eletricidade, rádio e motor estão fora de alcance nesta ilha.</p>';
+  }
+  /* relíquias */
+  const br=document.getElementById('boxReliq');
+  br.innerHTML=(d.reliquias&&d.reliquias.length)
+    ? d.reliquias.map(r=>{const L=RELIQ[r.k]||RELIQ[0];
+        return '<div class="rcard"><h5>'+esc(r.n)+'<span class="tag '+L.c+'">'+L.n+'</span></h5>'+
+        (r.p?'<p class="sobre">'+esc(r.p)+'</p>':'')+
+        (r.c?'<p class="sobre" style="color:#ff8496">Preço: '+esc(r.c)+'</p>':'')+
+        (r.o?'<p class="nota">Dono anterior: '+esc(r.o)+'</p>':'')+'</div>';}).join('')
+    : '<p class="sobre" style="margin:0">Nada de poder ainda. Achado bom é raro; relíquia de verdade está sempre guardada por alguma coisa.</p>';
+  /* bestiário do jogador */
+  const bb=document.getElementById('boxBestia'), ids=Object.keys(d.bestia||{});
+  bb.innerHTML= ids.length ? ids.map(k=>{
+      const c=d.bestia[k], L=LENDAS[k], E=EST_ROT[c.e]||EST_ROT.rumor;
+      return '<div class="rcard"><h5>'+esc(c.n)+'<span class="tag '+E[1]+'">'+E[0]+'</span></h5>'+
+        (L?'<div><span class="tag">Lenda</span><span class="pips">'+pips(L.pg)+'</span>'+
+            (L.dom?'<span class="tag go" style="margin-left:6px">Domável</span>':'')+'</div>'+
+            '<p class="sobre">'+L.d+'</p>':'')+
+        ((c.notas&&c.notas.length)?c.notas.map(n=>'<p class="nota">'+esc(n)+'</p>').join(''):'')+
+        '</div>';}).join('')
+    : '<p class="sobre" style="margin:0">Você ainda não cruzou com nada que valesse registro. Rumores contam — ouça nas tavernas.</p>';
+  /* povos */
+  document.getElementById('boxRacas').innerHTML=Object.keys(RACAS).map(k=>{
+    const r=RACAS[k], P=POSTURA[r.po];
+    const onde=r.reg.map(x=>REGIOES[x]?REGIOES[x].n:x).join(' · ');
+    return '<div class="rcard"><h5>'+r.n+'<span class="tag '+P.c+'">'+P.r+'</span></h5>'+
+      '<div><span class="pips">'+pips(r.pg)+'</span> <span class="tag">perigo '+r.pg+'/5</span></div>'+
+      '<p class="sobre">'+r.d+'</p>'+
+      '<p class="nota">Onde: '+onde+'</p>'+
+      '<p class="nota">Ganchos: '+r.q+'</p></div>';}).join('');
+  /* lendas */
+  document.getElementById('boxLendas').innerHTML=Object.keys(LENDAS).map(k=>{
+    const L=LENDAS[k], viu=(d.bestia||{})[k];
+    const reg=REGIOES[L.reg]?REGIOES[L.reg].n:L.reg;
+    return '<div class="rcard"><h5>'+L.n+(L.dom?'<span class="tag go">Domável</span>':'<span class="tag bad">Não se doma</span>')+'</h5>'+
+      '<div><span class="pips">'+pips(L.pg)+'</span> <span class="tag">'+reg+'</span>'+
+      (viu?'<span class="tag ok">'+(EST_ROT[viu.e]||EST_ROT.rumor)[0]+'</span>':'')+'</div>'+
+      '<p class="sobre">'+L.d+'</p>'+
+      '<p class="nota">Como se anuncia: '+L.s+'</p>'+
+      '<p class="nota">'+L.p+'</p></div>';}).join('');
+}
+
 /* ---------- faixa de missão no topo ---------- */
 function atualizarCond(){
   const el=document.getElementById('cond'); if(!el) return;
@@ -1849,15 +3679,79 @@ function painelMundo(){
         '</div>';
     }).join('') : '<p class="sobre" style="margin:0">Você ainda não fez nada que chegasse aos ouvidos de ninguém. Reputação nasce de atos com testemunha.</p>';
   }
+  /* domínio */
+  const bd=document.getElementById('boxDominio'), D=Save.d.dominio;
+  if(bd) bd.innerHTML = D ? (function(){
+      const ESC=D.subt?BUNKER:FORTE;
+      const F=ESC[D.forte||0], L=LEGIT[D.legit]||LEGIT.vazio, prox=ESC[(D.forte||0)+1];
+      const sg=D.sigilo===undefined?100:D.sigilo;
+      return '<h5 style="margin:0 0 6px;font-size:15px;display:flex;justify-content:space-between;gap:8px">'+
+        esc(D.n||'Domínio sem nome')+'<span class="tag '+(D.oculto?'dim':L.c)+'">'+(D.oculto?'⛏ Oculto':L.r)+'</span></h5>'+
+        '<div class="ln" style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0"><span>Região</span><b>'+
+          (REGIOES[D.reg]?REGIOES[D.reg].n:esc(D.reg))+'</b></div>'+
+        '<div class="ln" style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0"><span>'+
+          (D.subt?'Escavação':'Obra')+'</span><b class="'+F.c+'">'+F.n+'</b></div>'+
+        (D.oculto?'':
+          '<div class="ln" style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0"><span>Gente na terra</span><b>'+D.povo+'</b></div>'+
+          '<div class="ln" style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0"><span>Renda</span><b style="color:var(--ouro)">'+D.renda+' cobres/dia</b></div>')+
+        '<div class="bar"><i style="width:'+((D.forte||0)/(ESC.length-1)*100)+'%"></i></div>'+
+        '<div class="lbl"><span>'+F.n+'</span><span>'+(D.forte||0)+'/'+(ESC.length-1)+'</span></div>'+
+        (D.oculto
+          ? '<div class="bar" style="margin-top:9px"><i style="width:'+sg+'%;background:'+(sg<30?'#ff6b81':'linear-gradient(90deg,var(--accent),var(--accent2))')+'"></i></div>'+
+            '<div class="lbl"><span>Sigilo</span><span class="'+(sg<30?'bad':'')+'">'+sg+'/100</span></div>'+
+            (sg<30?'<p class="sobre" style="color:#ff8496">Alguém anda perguntando. Quando chegar a zero, o lugar foi achado.</p>'
+                  :'<p class="sobre">Ninguém sabe que existe. Cada pessoa levada lá derruba isso.</p>')
+          : '')+
+        '<p class="sobre">'+F.d+'</p>'+
+        (prox?'<p class="nota">Próximo degrau: <b>'+prox.n+'</b> — '+prox.moeda+' coroas, '+prox.dias+' dias, '+prox.bracos+' braços'+
+          (D.oculto&&prox.sig?', '+prox.sig+' de sigilo':'')+'.</p>':'')+
+        (D.obras.length?'<p class="nota">Construído: '+D.obras.map(esc).join(' · ')+'</p>':'')+
+        (D.ameaca?'<p class="sobre" style="color:#ff8496">⚠ '+esc(D.ameaca)+'</p>':'');
+    })()
+    : '<p class="sobre" style="margin:0">Você não tem terra. Ela vem de fama e honra altas numa região, de conquista ou de casamento — <b>ou de simplesmente ocupar um lugar abandonado</b>, que não exige fama nenhuma. Terra vazia está vazia por um motivo, e o motivo continua lá.</p>';
+
+  /* harmonia da casa, quando há mais de um laço */
+  const LR=lares();
+  if(bd && LR.firmes.length){
+    const hh=Save.d.harmonia||70;
+    bd.innerHTML += '<div style="margin-top:12px;padding-top:11px;border-top:1px solid var(--line)">'+
+      '<div class="lbl" style="margin:0 0 5px"><span>Laços firmados</span><span>'+
+        LR.firmes.map(x=>esc(x.nome)).join(' · ')+'</span></div>'+
+      '<div class="bar"><i style="width:'+hh+'%;background:'+(hh<30?'#ff6b81':'linear-gradient(90deg,var(--accent),var(--accent2))')+'"></i></div>'+
+      '<div class="lbl"><span>Harmonia da casa</span><span class="'+(hh<30?'bad':'')+'">'+hh+'/100</span></div>'+
+      (LR.firmes.length>1
+        ? '<p class="sobre">Mais de um laço na mesma casa. Ciúme e disputa por atenção são inevitáveis'+
+          (hh<30?' — <b style="color:#ff8496">e a casa já está rachando.</b>':'.')+'</p>'
+        : '');
+  }
+
+  /* resumo da casa */
+  const C=casa(), bc=document.getElementById('boxCasa');
+  if(bc) bc.innerHTML = C.lista.length
+    ? '<div class="lbl" style="margin:0 0 7px"><span>'+C.lista.length+
+      (C.lista.length===1?' pessoa depende de você':' pessoas dependem de você')+'</span>'+
+      '<span class="'+(Save.d.moedas<C.gasto*3?'bad':'')+'">'+C.gasto+' cobres/dia</span></div>'+
+      C.lista.map(x=>'<div class="ln" style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0">'+
+        '<span>'+esc(x.n.nome)+'</span><span class="tag '+x.v.c+'">'+x.v.r+'</span></div>').join('')+
+      '<p class="sobre" style="margin-top:8px">Você tem '+Save.d.moedas+' cobres — dá para cerca de '+
+      (function(nd){return nd===1?'1 dia':nd+' dias';})(Math.floor(Save.d.moedas/Math.max(1,C.gasto)))+'.'+
+      (Save.d.moedas<C.gasto*3?' <b style="color:#ff8496">Não vai dar. Alguém vai passar fome ou ir embora.</b>':'')+'</p>'
+    : '<p class="sobre" style="margin:0">Ninguém depende de você. Comprar, contratar ou libertar alguém cria uma casa — e uma conta que chega todo dia.</p>';
   const box=document.getElementById('listaNpc'); const ids=Object.keys(Save.d.npcs);
   box.innerHTML = ids.length ? '' : '<p class="sobre" style="margin:0">Você ainda não conheceu ninguém. As pessoas que aparecerem na história entram aqui sozinhas.</p>';
   ids.forEach(id=>{
     const n=Save.d.npcs[id], v=n.af||0, pct=Math.max(0,v)*10;
     const nv=v<0?'Hostil':v===0?'Indiferente':v<4?'Cordial':v<7?'Próxima(o)':'Leal';
+    const V=VINCULO[n.cond]||VINCULO.livre;
     const d=document.createElement('div'); d.className='pcard';
     d.innerHTML='<div class="npc"><div class="av" style="background:'+corDe(id)+'">'+esc((n.nome||'?')[0])+'</div>'+
       '<div style="flex:1"><h3>'+esc(n.nome)+(n.idade?' <span class="id">· '+n.idade+' anos</span>':'')+'</h3>'+
-      '<div style="font-size:12px;color:var(--dim)">'+esc(n.papel||'')+'</div></div></div>'+
+      '<div style="font-size:12px;color:var(--dim)">'+esc(n.papel||'')+'</div>'+
+      ((n.cond&&n.cond!=='livre')||(n.rel&&RELACAO[n.rel])
+        ?'<div style="margin-top:4px">'+
+          (n.cond&&n.cond!=='livre'?'<span class="tag '+V.c+'">'+V.r+(V.g?' · '+V.g+' cobres/dia':'')+'</span>':'')+
+          (n.rel&&RELACAO[n.rel]&&RELACAO[n.rel].r?'<span class="tag '+RELACAO[n.rel].c+'">♥ '+RELACAO[n.rel].r+'</span>':'')+
+         '</div>':'')+'</div></div>'+
       (n.sobre?'<p class="sobre">'+esc(n.sobre)+'</p>':'')+
       '<div class="bar"><i style="width:'+pct+'%"></i></div>'+
       '<div class="lbl"><span>'+nv+(n.traiu?'<span class="traiu">TRAIU VOCÊ</span>':'')+'</span><span>'+v+'/10</span></div>'+
@@ -1890,7 +3784,7 @@ function fechar(){document.querySelectorAll('.painel').forEach(x=>x.classList.re
 const AJUDA={
   pollinations:'Era a opção sem cadastro, mas o serviço gratuito foi descontinuado e agora vive fora do ar. Deixado aqui só por garantia — use o Groq.',
   gemini:'⭐ O melhor para o que você quer: escreve cenas longas sem cortar e obedece bem o número de parágrafos. Grátis, sem cartão. Entre em <b>aistudio.google.com/apikey</b> com sua conta Google, clique em "Create API key", copie e cole aqui. <b>Atenção:</b> o Google aposenta modelos de tempos em tempos. Se aparecer erro 404 dizendo que o modelo não existe mais, use o botão <b>🔎 Ver os modelos liberados na minha chave</b> logo abaixo.',
-  groq:'⚡ O mais rápido de todos. Grátis, sem cartão: <b>console.groq.com/keys</b> → login → Create API Key. Porém o plano gratuito limita o total de texto por dia, então em cenas de 10 parágrafos ele acaba antes — bom para cenas curtas e médias.',
+  groq:'⚠️ <b>Não recomendado para este jogo.</b> É o mais rápido de todos, mas o plano gratuito limita 6.000 tokens por MINUTO — e uma cena daqui manda mais de 12.000. Uma única jogada já estoura a cota. Use o Gemini, que dá 1.500 chamadas por dia de graça.',
   openrouter:'Crie conta em <b>openrouter.ai/keys</b>. Os modelos marcados <code>:free</code> não custam nada, mas dão 50 respostas por dia. Os sem <code>:free</code> são pagos.',
   local:'100% grátis e ilimitado, mas roda só no PC e exige instalar o <b>Ollama</b> (ollama.com) ou o LM Studio. No celular não funciona, e pelo site publicado o navegador costuma bloquear a conexão com o seu PC.',
   custom:'Qualquer endpoint no formato da OpenAI.'
@@ -1942,7 +3836,131 @@ document.getElementById('bTestar').onclick=async ()=>{
   }
 };
 document.getElementById('modeloSel').onchange=e=>{document.getElementById('apiModel').value=e.target.value;};
+document.getElementById('genero').onchange=e=>{
+  Save.d.genero=e.target.value; Save.gravar(); painelFicha();
+};
+document.getElementById('strm').onchange=e=>{ localStorage.setItem(PREFIX+':stream',e.target.value); };
+
+/* ---- serviço reserva ---- */
+document.getElementById('bkPreset').onchange=e=>{
+  const p=e.target.value;
+  if(p&&PRESETS[p]) document.getElementById('bkModel').value=PRESETS[p].modelos[0][0];
+  if(!p) document.getElementById('bkModel').value='';
+};
+document.getElementById('bBkSalvar').onclick=()=>{
+  const p=document.getElementById('bkPreset').value;
+  const res=document.getElementById('bkRes');
+  if(!p){ localStorage.removeItem(PREFIX+':bk');
+    res.innerHTML='<span style="color:var(--dim)">Reserva desligado.</span>'; return; }
+  const bk={url:PRESETS[p].url, model:document.getElementById('bkModel').value.trim(),
+            key:document.getElementById('bkKey').value.trim()};
+  if(!bk.model){ res.innerHTML='<span style="color:var(--hp)">Falta o id do modelo.</span>'; return; }
+  if(PRESETS[p].chave && !bk.key){ res.innerHTML='<span style="color:var(--hp)">Este serviço precisa de chave própria.</span>'; return; }
+  localStorage.setItem(PREFIX+':bk', JSON.stringify(bk));
+  res.innerHTML='<span style="color:var(--ok)">✓ Reserva salvo. Se o principal falhar, o jogo troca sozinho.</span>';
+};
+document.getElementById('bBkTestar').onclick=async()=>{
+  const res=document.getElementById('bkRes');
+  const p=document.getElementById('bkPreset').value;
+  if(!p){ res.innerHTML='Escolha um serviço primeiro.'; return; }
+  const url=PRESETS[p].url, model=document.getElementById('bkModel').value.trim();
+  const key=document.getElementById('bkKey').value.trim();
+  res.innerHTML='Testando o reserva…';
+  try{
+    const h={'Content-Type':'application/json'}; if(key) h['Authorization']='Bearer '+key;
+    const r=await fetchT(url,{method:'POST',headers:h,body:JSON.stringify({
+      model, messages:[{role:'user',content:'oi'}], max_tokens:5 })}, 25000);
+    res.innerHTML = r.ok
+      ? '<span style="color:var(--ok)">✓ Reserva funcionando. Agora toque em <b>Salvar reserva</b>.</span>'
+      : '<span style="color:var(--hp)">Erro '+r.status+' — '+esc(explicarHTTP(r.status))+'</span>';
+  }catch(e){ res.innerHTML='<span style="color:var(--hp)">Falhou: '+esc(erroAmigavel(e))+'</span>'; }
+};
+function painelErros(){
+  const cx=document.getElementById('errosBox'); if(!cx) return;
+  let l=[]; try{ l=JSON.parse(localStorage.getItem(PREFIX+':erros')||'[]'); }catch(e){}
+  if(!l.length){ cx.innerHTML=''; return; }
+  cx.innerHTML='<div class="dica" style="margin-top:10px"><b>Últimas falhas registradas</b><br>'+
+    l.slice(-6).reverse().map(x=>'<span style="color:var(--dim)">'+esc(x.q)+' · '+esc(x.t)+
+      ' · rede '+esc(x.rede)+'</span><br><span style="color:var(--hp)">'+esc(x.m)+'</span>').join('<br>')+
+    '</div>';
+}
+document.getElementById('bDiag').onclick=async()=>{
+  const cx=document.getElementById('diagRes');
+  const url=document.getElementById('apiUrl').value.trim();
+  const model=document.getElementById('apiModel').value.trim();
+  const key=document.getElementById('apiKey').value.trim()||api().key;
+  const linhas=[];
+  const pinta=()=>cx.innerHTML='<div style="line-height:1.8">'+linhas.join('<br>')+'</div>';
+  const ok=t=>'<span style="color:var(--ok)">✓</span> '+t;
+  const nao=t=>'<span style="color:var(--hp)">✗</span> '+t;
+  const meio=t=>'<span style="color:var(--ouro)">•</span> '+t;
+
+  linhas.push(meio('Testando…')); pinta();
+  const conn=navigator.connection||{};
+  linhas[0]= navigator.onLine ? ok('Aparelho conectado'+(conn.effectiveType?' ('+conn.effectiveType+
+      (conn.downlink?', ~'+conn.downlink+' Mb/s':'')+')':'')) : nao('Aparelho SEM internet');
+  pinta();
+  if(!navigator.onLine) return;
+
+  // 1) resposta simples, sem streaming
+  let t0=Date.now();
+  try{
+    const h={'Content-Type':'application/json'}; if(key) h['Authorization']='Bearer '+key;
+    const r=await fetchT(url,{method:'POST',headers:h,body:JSON.stringify({
+      model, messages:[{role:'user',content:'oi'}], max_tokens:5 })}, 25000);
+    const ms=Date.now()-t0;
+    if(r.ok) linhas.push(ok('Servidor respondeu em '+ms+' ms (sem streaming)'));
+    else if(r.status===429) linhas.push(nao('Cota diária esgotada (429) — é isto que está travando'));
+    else if(r.status===401||r.status===403) linhas.push(nao('Chave recusada ('+r.status+')'));
+    else if(r.status===404) linhas.push(nao('Modelo não existe mais (404) — use “Ver os modelos liberados”'));
+    else linhas.push(nao('Servidor respondeu '+r.status));
+  }catch(e){
+    linhas.push(nao(e.message==='TEMPO_ESGOTADO'
+      ? 'Sem resposta em 25 s — rede muito lenta ou bloqueada'
+      : 'Falha de rede: '+esc(e.message)));
+  }
+  pinta();
+
+  // 2) streaming
+  t0=Date.now();
+  try{
+    const h={'Content-Type':'application/json'}; if(key) h['Authorization']='Bearer '+key;
+    const r=await fetchT(url,{method:'POST',headers:h,body:JSON.stringify({
+      model, messages:[{role:'user',content:'conte ate cinco'}], max_tokens:30, stream:true })}, 25000);
+    if(!r.ok||!r.body){ linhas.push(nao('Streaming recusado pelo servidor ('+r.status+')')); }
+    else{
+      const rd=r.body.getReader();
+      const primeiro=await Promise.race([rd.read(),
+        new Promise((_,x)=>setTimeout(()=>x(new Error('mudo')),18000))]);
+      const ms=Date.now()-t0;
+      try{ rd.cancel(); }catch(x){}
+      linhas.push(primeiro&&primeiro.value ? ok('Streaming funcionando (1º pedaço em '+ms+' ms)')
+                                           : nao('Streaming abriu mas não mandou nada'));
+    }
+  }catch(e){
+    linhas.push(nao('Streaming travado nesta rede — desligue-o logo abaixo'));
+    localStorage.setItem(PREFIX+':stream','0');
+    document.getElementById('strm').value='0';
+  }
+  linhas.push('<span style="color:var(--dim);font-size:11.5px">Este teste gastou 2 chamadas pequenas da sua cota.</span>');
+  pinta();
+  painelErros();
+};
+(function(){ const r=document.getElementById('sysrot'); if(!r) return;
+  r.value=localStorage.getItem(PREFIX+':sysrot')||'0';
+  r.onchange=()=>localStorage.setItem(PREFIX+':sysrot',r.value);
+})();
 document.getElementById('bZerarUso').onclick=()=>Uso.zerar();
+(function(){
+  const sel=document.getElementById('plano'),
+        pi=document.getElementById('precoIn'), po=document.getElementById('precoOut');
+  sel.value=localStorage.getItem(PREFIX+':plano')||'auto';
+  pi.value=localStorage.getItem(PREFIX+':pin')||'';
+  po.value=localStorage.getItem(PREFIX+':pout')||'';
+  sel.onchange=()=>{ localStorage.setItem(PREFIX+':plano',sel.value); painelUso(); };
+  pi.oninput=()=>{ localStorage.setItem(PREFIX+':pin',pi.value); painelUso(); };
+  po.oninput=()=>{ localStorage.setItem(PREFIX+':pout',po.value); painelUso(); };
+})();
 document.getElementById('mem').onchange=e=>{
   localStorage.setItem(PREFIX+':mem',e.target.value); painelUso();
 };
@@ -1991,7 +4009,8 @@ elLog.addEventListener('click',e=>{ if(e.target.closest('.sysline')) abrirStatus
 document.getElementById('bMochila').onclick=()=>{painelMochila();abrir('pMochila');};
 document.getElementById('bMapa').onclick=()=>{painelMapa();abrir('pMapa');};
 document.getElementById('bMundo').onclick=()=>{painelMundo();abrir('pMundo');};
-document.getElementById('bConf').onclick=()=>{painelUso();abrir('pConf');};
+document.getElementById('bBestia').onclick=()=>{painelBestia();abrir('pBestia');};
+document.getElementById('bConf').onclick=()=>{painelUso();painelErros();abrir('pConf');};
 document.getElementById('fundo').onclick=fechar;
 document.querySelectorAll('[data-fechar]').forEach(b=>b.onclick=fechar);
 document.getElementById('bSalvarApi').onclick=()=>{
@@ -2073,7 +4092,7 @@ async function nuvemBaixar(){
         '), gerado em '+quando+'?\n\nIsto substitui o progresso do Slot '+Save.slot+' deste aparelho.')) { res.innerHTML=''; return; }
     Save.d=dados;
     const base=Save.novo(); for(const k in base) if(Save.d[k]===undefined) Save.d[k]=base[k];
-    Save.gravar(); redesenhar();
+    migrarSave(); Save.gravar(); redesenhar();
     res.innerHTML='<span style="color:var(--ok)">✓ Save carregado. Boa jogatina.</span>';
     setTimeout(fechar,1200);
   }catch(e){
@@ -2085,7 +4104,7 @@ document.getElementById('bNuvemBaixar').onclick=nuvemBaixar;
 document.getElementById('bExp').onclick=()=>Save.exportar();
 document.getElementById('bImp').onclick=()=>Save.importar();
 document.getElementById('bReset').onclick=()=>{if(confirm('Apagar este slot e renascer do zero?')){Save.zerar();redesenhar();fechar();}};
-document.getElementById('selSlot').onchange=e=>{Save.carregar(+e.target.value);redesenhar();};
+document.getElementById('selSlot').onchange=e=>{Save.carregar(+e.target.value);migrarSave();redesenhar();barraCena(false);};
 window.addEventListener('pagehide',()=>Save.gravar());
 document.addEventListener('visibilitychange',()=>{if(document.hidden)Save.gravar();});
 
@@ -2111,10 +4130,19 @@ document.getElementById('apiKey').value=c0.key;
 document.getElementById('tam').value=String(c0.tam);
 document.getElementById('mem').value=String(c0.mem);
 document.getElementById('sysmodo').value=String(sysModo());
+document.getElementById('strm').value=(localStorage.getItem(PREFIX+':stream')==='0'?'0':'1');
+(function(){ const bk=lerReserva(); if(!bk) return;
+  for(const p in PRESETS) if(PRESETS[p].url===bk.url) document.getElementById('bkPreset').value=p;
+  document.getElementById('bkModel').value=bk.model||'';
+  document.getElementById('bkKey').value=bk.key||'';
+})();
+painelErros();
+migrarSave(); Save.gravar();
 marcarNovidades();
 redesenhar();
 atualizarMotor();
+barraCena(false);
 if(!temIA()) avisoSemChave();
 </script>
-</body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a42469c96d8a0ad0',t:'MTc5MDYxNTk2OA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
