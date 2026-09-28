@@ -121,6 +121,13 @@
   .icb.novo::after{content:'';position:absolute;top:-2px;right:-2px;width:9px;height:9px;
     border-radius:50%;background:var(--hp);border:1.5px solid var(--bg);animation:pulso 1.8s ease-out infinite}
 
+  /* código de transferência */
+  .codigo{margin-top:11px;padding:13px;text-align:center;border-radius:11px;
+    background:rgba(127,90,240,.12);border:1px solid #4a3a7a}
+  .codigo b{display:block;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:27px;
+    letter-spacing:4px;color:#fff;margin:4px 0 9px;word-break:break-all}
+  .codigo small{display:block;font-size:11.5px;color:var(--dim);line-height:1.5}
+
   /* registro do Sistema */
   .rgItem{border-left:3px solid var(--xp);background:rgba(255,255,255,.03);border-radius:0 8px 8px 0;
     padding:8px 11px;margin-bottom:7px}
@@ -470,6 +477,25 @@
         <button class="btn g" id="bExp">⬇ Baixar</button>
         <button class="btn g" id="bImp">⬆ Carregar</button>
       </div>
+
+      <h4 class="t" style="margin-top:18px">Passar o save para outro aparelho</h4>
+      <div class="dica" style="margin-top:0">O navegador guarda o progresso <b>só no aparelho onde
+      você jogou</b> — por isso o save do computador não aparece no celular. Use um código de
+      transferência: gere no aparelho onde está jogando e digite no outro.</div>
+
+      <button class="btn g" id="bNuvemEnviar" style="width:100%;margin-top:10px">☁️ Gerar código deste save</button>
+      <div id="codBox"></div>
+
+      <label class="f" style="margin-top:12px">Tenho um código de outro aparelho</label>
+      <div class="row">
+        <input class="f" id="codEntrada" placeholder="ex.: H7THUZWUT" style="flex:1;text-transform:uppercase">
+        <button class="btn g" id="bNuvemBaixar">Trazer</button>
+      </div>
+      <div id="codRes" class="dica"></div>
+      <div class="aviso">O código dura <b>1 ano</b> e quem tiver o código consegue ler a sua
+      história — não publique em lugar nenhum. <b>A sua chave de API não vai junto</b>, ela nunca
+      sai deste aparelho. Cada vez que você gerar, sai um código novo (o antigo continua valendo,
+      mas com a história de antes).</div>
       <p class="dica">O progresso fica neste aparelho. Baixe o arquivo no PC e carregue no celular
       para continuar de onde parou.</p>
       <button class="btn g" id="bReset" style="margin-top:12px;color:#ff9b9b">↺ Renascer do zero</button>
@@ -491,9 +517,11 @@ const PRESETS={
     ['deepseek','DeepSeek — grátis, sem cadastro']
   ]},
   gemini:{url:'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', chave:true, modelos:[
-    ['gemini-2.5-flash','Gemini 2.5 Flash — grátis, o melhor dos gratuitos'],
-    ['gemini-flash-latest','Gemini Flash mais recente — grátis'],
-    ['gemma-3-27b-it','Gemma 3 27B — grátis, mais leve']
+    ['gemini-3.8-flash','Gemini 3.8 Flash — grátis, o melhor para cenas longas'],
+    ['gemini-flash-latest','Gemini Flash mais recente — grátis, sempre atual'],
+    ['gemini-3.5-flash','Gemini 3.5 Flash — grátis'],
+    ['gemini-3.5-flash-lite','Gemini 3.5 Flash-Lite — grátis, mais rápido e com cota maior'],
+    ['gemini-2.5-flash','Gemini 2.5 Flash — ⚠ só funciona em contas antigas']
   ]},
   groq:{url:'https://api.groq.com/openai/v1/chat/completions', chave:true, modelos:[
     ['openai/gpt-oss-120b','GPT-OSS 120B — grátis e absurdamente rápido'],
@@ -1139,7 +1167,7 @@ function painelUso(){
 
 function api(){return{
   key:localStorage.getItem(PREFIX+':key')||'',
-  model:localStorage.getItem(PREFIX+':model')||'gemini-2.5-flash',
+  model:localStorage.getItem(PREFIX+':model')||'gemini-3.8-flash',
   url:localStorage.getItem(PREFIX+':url')||PRESETS.gemini.url,
   tam:+(localStorage.getItem(PREFIX+':tam')||5200),
   mem:+(localStorage.getItem(PREFIX+':mem')||14)
@@ -1268,6 +1296,25 @@ async function umaChamada(msgs, aoVivo, jaEscrito){
   if(r.status>=500) throw new Error('O servidor respondeu '+r.status+' três vezes seguidas. Troque de serviço em ⚙️ Ajustes.');
 
   // sem streaming disponível: refaz normal
+  /* o Google aposenta modelos e diz na resposta qual é o substituto: troca sozinho e refaz */
+  if(r.status===404){
+    const erro=await r.text();
+    const m=erro.match(/models\/([A-Za-z0-9.\-_]+)\s+for the latest|use\s+models\/([A-Za-z0-9.\-_]+)/);
+    const sugerido=m&&(m[1]||m[2]);
+    if(sugerido && sugerido!==c.model){
+      localStorage.setItem(PREFIX+':model',sugerido);
+      const cp=document.getElementById('apiModel'); if(cp) cp.value=sugerido;
+      atualizarMotor();
+      bloco('sis','🔄 O modelo <b>'+esc(c.model)+'</b> foi aposentado pelo provedor. '+
+        'Troquei automaticamente para <b>'+esc(sugerido)+'</b> e estou tentando de novo.',false);
+      body.model=sugerido;
+      r=await fetch(c.url,{method:'POST',headers:h,body:JSON.stringify(body)});
+    } else {
+      throw new Error('HTTP 404 — '+erro.slice(0,200)+
+        ' … Abra ⚙️ Ajustes e toque em “🔎 Ver os modelos liberados na minha chave”.');
+    }
+  }
+
   if(!r.ok || !r.body){
     if(!r.ok && r.status!==400) throw new Error('HTTP '+r.status+' — '+(await r.text()).slice(0,200));
     body.stream=false;
@@ -1842,7 +1889,7 @@ function fechar(){document.querySelectorAll('.painel').forEach(x=>x.classList.re
    ========================================================== */
 const AJUDA={
   pollinations:'Era a opção sem cadastro, mas o serviço gratuito foi descontinuado e agora vive fora do ar. Deixado aqui só por garantia — use o Groq.',
-  gemini:'⭐ O melhor para o que você quer: escreve cenas longas sem cortar e obedece bem o número de parágrafos. Grátis, sem cartão. Entre em <b>aistudio.google.com/apikey</b> com sua conta Google, clique em "Create API key", copie e cole aqui.',
+  gemini:'⭐ O melhor para o que você quer: escreve cenas longas sem cortar e obedece bem o número de parágrafos. Grátis, sem cartão. Entre em <b>aistudio.google.com/apikey</b> com sua conta Google, clique em "Create API key", copie e cole aqui. <b>Atenção:</b> o Google aposenta modelos de tempos em tempos. Se aparecer erro 404 dizendo que o modelo não existe mais, use o botão <b>🔎 Ver os modelos liberados na minha chave</b> logo abaixo.',
   groq:'⚡ O mais rápido de todos. Grátis, sem cartão: <b>console.groq.com/keys</b> → login → Create API Key. Porém o plano gratuito limita o total de texto por dia, então em cenas de 10 parágrafos ele acaba antes — bom para cenas curtas e médias.',
   openrouter:'Crie conta em <b>openrouter.ai/keys</b>. Os modelos marcados <code>:free</code> não custam nada, mas dão 50 respostas por dia. Os sem <code>:free</code> são pagos.',
   local:'100% grátis e ilimitado, mas roda só no PC e exige instalar o <b>Ollama</b> (ollama.com) ou o LM Studio. No celular não funciona, e pelo site publicado o navegador costuma bloquear a conexão com o seu PC.',
@@ -1975,6 +2022,66 @@ document.getElementById('bSalvarApi').onclick=()=>{
   if(temIA()) bloco('sis','✅ Motor ligado com <b>'+esc(api().model)+'</b>. Agora escreva o que quiser.',false);
   else avisoSemChave();
 };
+/* ---------- transferência entre aparelhos (dpaste.com, sem cadastro) ---------- */
+const NUVEM='https://dpaste.com/';
+async function nuvemEnviar(){
+  const cx=document.getElementById('codBox');
+  cx.innerHTML='<div class="dica">Enviando…</div>';
+  try{
+    const c=JSON.parse(JSON.stringify(Save.d));
+    c.log=(c.log||[]).slice(-25);          /* o texto do chat é o que mais pesa */
+    c.hist=(c.hist||[]).slice(-14);
+    const pacote=JSON.stringify({app:'valdrath', v:6, slot:Save.slot, quando:new Date().toISOString(), d:c});
+    const body=new URLSearchParams({content:pacote, syntax:'text', expiry_days:'365'});
+    const r=await fetch(NUVEM+'api/v2/',{method:'POST',body});
+    if(!r.ok) throw new Error('o servidor respondeu '+r.status);
+    const url=(await r.text()).trim();
+    const cod=url.split('/').filter(Boolean).pop();
+    if(!cod||cod.length>20) throw new Error('resposta inesperada do servidor');
+    localStorage.setItem(PREFIX+':ultimoCod',cod);
+    cx.innerHTML='<div class="codigo">Código deste save<b>'+esc(cod)+'</b>'+
+      '<small>No outro aparelho: abra o site → ⚙️ Ajustes → cole este código em<br>'+
+      '“Tenho um código de outro aparelho” e toque em <b>Trazer</b>.</small></div>'+
+      '<div class="row" style="margin-top:8px"><button class="btn g" id="bCopiarCod" style="width:100%">📋 Copiar código</button></div>';
+    document.getElementById('bCopiarCod').onclick=async()=>{
+      const bt=document.getElementById('bCopiarCod');
+      try{ await navigator.clipboard.writeText(cod); bt.textContent='✓ Copiado'; }
+      catch(e){ bt.textContent=cod; }
+      setTimeout(()=>bt.textContent='📋 Copiar código',1600);
+    };
+  }catch(e){
+    cx.innerHTML='<div class="dica" style="color:var(--hp)">Não consegui enviar: '+esc(e.message)+
+      '.<br>Se você abriu o arquivo direto do computador (endereço começando com <b>file://</b>), '+
+      'isto só funciona pelo site publicado. Use <b>⬇ Baixar</b> e <b>⬆ Carregar</b> nesse caso.</div>';
+  }
+}
+async function nuvemBaixar(){
+  const campo=document.getElementById('codEntrada');
+  const res=document.getElementById('codRes');
+  const cod=campo.value.trim().replace(/^.*\//,'').replace(/\.txt$/i,'');
+  if(!cod){ res.innerHTML='<span style="color:var(--hp)">Digite o código gerado no outro aparelho.</span>'; return; }
+  res.innerHTML='Procurando…';
+  try{
+    const r=await fetch(NUVEM+encodeURIComponent(cod)+'.txt');
+    if(!r.ok) throw new Error('código não encontrado ('+r.status+')');
+    const txt=await r.text();
+    let j; try{ j=JSON.parse(txt); }catch(e){ throw new Error('esse código não é de um save do jogo'); }
+    const dados=j.d||j;
+    if(!dados || typeof dados!=='object' || dados.nivel===undefined) throw new Error('esse código não é de um save do jogo');
+    const quando=j.quando?new Date(j.quando).toLocaleString('pt-BR'):'data desconhecida';
+    if(!confirm('Trazer o save de '+(dados.nome||'sem nome')+' (nível '+dados.nivel+', dia '+dados.dia+
+        '), gerado em '+quando+'?\n\nIsto substitui o progresso do Slot '+Save.slot+' deste aparelho.')) { res.innerHTML=''; return; }
+    Save.d=dados;
+    const base=Save.novo(); for(const k in base) if(Save.d[k]===undefined) Save.d[k]=base[k];
+    Save.gravar(); redesenhar();
+    res.innerHTML='<span style="color:var(--ok)">✓ Save carregado. Boa jogatina.</span>';
+    setTimeout(fechar,1200);
+  }catch(e){
+    res.innerHTML='<span style="color:var(--hp)">Não deu certo: '+esc(e.message)+'.</span>';
+  }
+}
+document.getElementById('bNuvemEnviar').onclick=nuvemEnviar;
+document.getElementById('bNuvemBaixar').onclick=nuvemBaixar;
 document.getElementById('bExp').onclick=()=>Save.exportar();
 document.getElementById('bImp').onclick=()=>Save.importar();
 document.getElementById('bReset').onclick=()=>{if(confirm('Apagar este slot e renascer do zero?')){Save.zerar();redesenhar();fechar();}};
@@ -1988,6 +2095,14 @@ const c0=api();
 let presetInicial='custom';
 for(const p in PRESETS) if(PRESETS[p].url===c0.url) presetInicial=p;
 if(!localStorage.getItem(PREFIX+':url')) presetInicial='gemini';
+/* quem já tinha o modelo aposentado salvo no navegador é migrado na abertura */
+if(/generativelanguage\.googleapis\.com/.test(c0.url) && /^gemini-(2\.[05]|1\.5)/.test(c0.model)){
+  localStorage.setItem(PREFIX+':model','gemini-3.8-flash');
+  c0.model='gemini-3.8-flash';
+  setTimeout(()=>bloco('sis','🔄 O Google aposentou o modelo que estava configurado aqui. '+
+    'Atualizei para <b>gemini-3.8-flash</b>. Se der erro, abra ⚙️ Ajustes e toque em '+
+    '<b>🔎 Ver os modelos liberados na minha chave</b>.',false),300);
+}
 document.getElementById('preset').value=presetInicial;
 preencherModelos(presetInicial);
 document.getElementById('apiUrl').value=c0.url;
@@ -2001,5 +2116,5 @@ redesenhar();
 atualizarMotor();
 if(!temIA()) avisoSemChave();
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a41fc15748e8d884',t:'MTc5MDU2NzEyNQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>
