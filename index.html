@@ -2427,6 +2427,19 @@ function contexto(){
   return s;
 }
 
+/** Esquema dos efeitos, em uma linha — usado no pedido de reparo. */
+const ESQUEMA_EFEITOS='<<<{"local":"","minutos":30,"dias":0,"hp":0,"xp":0,"moedas":0,'+
+ '"itens_ganhos":[],"itens_perdidos":[],"habilidade_nova":"","pericia_nova":"","regiao":"","idioma":0,'+
+ '"classe":"","titulo":"","missao":{"titulo":"","objetivo":"","recompensa":""},"missao_concluida":false,'+
+ '"rep":{"fama":0,"honra":0,"motivo":""},"condicao":"","dono":"",'+
+ '"dom":{"nome":"","sinal":"","desperto":0,"custo":"","alivio":0,"ancora":"","desgaste":0,"selo":"","divida":""},'+
+ '"reliquia":{"nome":"","nivel":0,"poder":"","preco":"","dono":""},'+
+ '"criatura":{"id":"","nome":"","estado":"","nota":""},"saqueado":"",'+
+ '"dominio":{"nome":"","tipo":"","povo":0,"forte":0,"renda":0,"obra":"","ameaca":"","oculto":false,"sigilo":0},'+
+ '"tec":{"nivel":0,"oficina":"","feito":""},"harmonia":0,'+
+ '"npcs":[{"id":"","nome":"","idade":0,"papel":"","sobre":"","afinidade":0,"lealdade":0,"agenda":"","pista":"","traiu":false,"condicao":"","relacao":""}],'+
+ '"memoria":""}>>>';
+
 /** Separa a narração dos efeitos. Aceita <<<json>>> ou um JSON solto. */
 function separar(bruto){
   let txt=String(bruto||''), efeitos={};
@@ -2528,9 +2541,10 @@ function erroAmigavel(e){
 }
 
 /** Uma chamada ao modelo. Devolve {texto, finish}. */
-async function umaChamada(msgs, aoVivo, jaEscrito, cfgAlt){
+async function umaChamada(msgs, aoVivo, jaEscrito, cfgAlt, semStream){
   const c=cfgAlt||api();
-  const querStream = localStorage.getItem(PREFIX+':stream')!=='0';
+  /* o pedido de reparo é curto e não precisa aparecer letra a letra */
+  const querStream = !semStream && localStorage.getItem(PREFIX+':stream')!=='0';
   const body={model:c.model, messages:msgs, temperature:0.95, max_tokens:c.tam, stream:querStream};
   /* sem isto, em streaming o provedor não manda a contagem e o medidor teria de chutar */
   if(querStream) body.stream_options={include_usage:true};
@@ -2698,11 +2712,22 @@ async function chamarIA(acao, aoVivo){
     'Não resuma, não acelere, não encerre antes da hora. '+
     'O bloco de efeitos no final não conta como parágrafo.';
 
+  /* As regras têm 26 mil caracteres e ficam no topo. Modelos esquecem o que está longe,
+     então a exigência do bloco é repetida aqui, colada no fim — é o ponto de maior peso. */
+  const LEMBRETE =
+    'OBRIGATÓRIO, NÃO ESQUEÇA: a última linha da sua resposta é o bloco de efeitos entre <<< e >>>, '+
+    'e nada vem depois dele. SEM ESSE BLOCO O JOGO NÃO REGISTRA NADA — nem experiência, nem ferimento, '+
+    'nem item, nem pessoa conhecida, nem criatura enfrentada, nem habilidade ou classe nova, nem o '+
+    'tempo que passou. Se nesta cena houve luta, morte de criatura, descoberta, pessoa nova, ou alguma '+
+    'mudança dentro do jogador (fúria, poder, ferimento, juramento), ISSO PRECISA APARECER NOS CAMPOS. '+
+    'Escreva o bloco mesmo que a cena pareça calma: preencha ao menos "minutos" e "xp".';
+
   const base=[{role:'system',content:regras()},
               {role:'system',content:contexto()},
               {role:'system',content:tamanho},
               ...historicoEnviado(),
-              {role:'user',content:acao}];
+              {role:'user',content:acao},
+              {role:'system',content:LEMBRETE}];
 
   let texto='', passo=0, finish='';
   do{
@@ -2723,7 +2748,33 @@ async function chamarIA(acao, aoVivo){
     passo++;
   } while(finish==='length' && texto.indexOf('<<<')<0 && passo<4);
 
-  const out=separar(texto);
+  let out=separar(texto);
+
+  /* O modelo escreveu a cena mas engoliu o bloco? Pede só o bloco, num pedido curto
+     e barato (sem as regras inteiras). Antes disso a cena era perdida em silêncio. */
+  const vazio = Object.keys(out).filter(k=>k!=='narracao').length===0;
+  if(vazio && texto.trim()){
+    try{
+      const reparo = await umaChamada([
+        {role:'system',content:
+          'Você é um extrator. Leia a cena abaixo e devolva APENAS o bloco de efeitos do jogo, '+
+          'entre <<< e >>>, sem nenhum texto antes ou depois. Use exatamente este formato e deixe '+
+          'vazio o que não aconteceu:\n'+ESQUEMA_EFEITOS+'\n'+
+          'Regras: "hp", "xp", "moedas" e "afinidade" são variações. "minutos" é quanto tempo a cena '+
+          'levou. Se o jogador derrotou, feriu ou afugentou uma criatura, preencha "criatura" com o '+
+          'estado certo. Se ele ganhou uma capacidade nova, use "habilidade_nova". Se virou outra '+
+          'coisa por dentro, use "titulo" ou "classe". Nunca invente o que a cena não contou.'},
+        {role:'user',content:'CENA:\n'+texto.slice(-6000)}
+      ], null, '', null, true);
+      const r2=separar(reparo.texto||'');
+      delete r2.narracao;
+      if(Object.keys(r2).length){
+        out=Object.assign(r2,{narracao:out.narracao});
+        out.reparado=true;
+      } else out.semBloco=true;
+    }catch(e){ logErro('reparo', e.message); out.semBloco=true; }
+  }
+
   if(finish==='rede') out.redeCaiu=true;
   return out;
 }
@@ -3306,13 +3357,15 @@ async function jogar(txt, opts){
   let res, transmitiu=false;
   try{
     if(temIA()){
-      Save.d.hist.push({role:'user',content:acao});
+      /* a ação NÃO entra no histórico antes da chamada: chamarIA já a envia por fora,
+         e empurrar aqui fazia a IA receber a mesma mensagem duas vezes seguidas. */
       res=await chamarIA(acao, p=>{
         if(!p) return;
         transmitiu=true;
         esperando.innerHTML=paras(p);
         elLog.scrollTop=elLog.scrollHeight;
       });
+      Save.d.hist.push({role:'user',content:acao});
       Save.d.hist.push({role:'assistant',content:res.narracao||''});
     } else {
       res=offline(acao); await new Promise(r=>setTimeout(r,250));
@@ -3330,6 +3383,12 @@ async function jogar(txt, opts){
   }
   aplicar(res);
   if(res.dica) bloco('sis',res.dica,false);
+  if(res.reparado) bloco('sis','🔧 A IA esqueceu o bloco de efeitos nesta cena. '+
+    'Pedi os números à parte e registrei — confira nos botões do topo.',false);
+  if(res.semBloco) bloco('sis','⚠️ <b>Esta cena não registrou nada.</b> A IA não mandou o bloco de '+
+    'efeitos e a tentativa de recuperar também falhou: experiência, ferimentos, itens, criaturas e '+
+    'habilidades desta cena foram perdidos. Se isso repetir, troque de modelo em ⚙️ Ajustes — alguns '+
+    'ignoram instruções de formato quando a narração fica muito longa.',false);
   if(res.redeCaiu) bloco('sis','📶 A conexão caiu no meio da cena — salvei o trecho que chegou. '+
     'Toque em <b>▶ Continuar</b> aqui embaixo para a IA terminar de onde parou.',false);
 
@@ -4221,5 +4280,5 @@ atualizarMotor();
 barraCena(false);
 if(!temIA()) avisoSemChave();
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a424d64efa72d79f',t:'MTc5MDYyMDQxMw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a426feafeadbb707',t:'MTc5MDY0MzAzOA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
