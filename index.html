@@ -2441,21 +2441,56 @@ const ESQUEMA_EFEITOS='<<<{"local":"","minutos":30,"dias":0,"hp":0,"xp":0,"moeda
  '"memoria":""}>>>';
 
 /** Separa a narração dos efeitos. Aceita <<<json>>> ou um JSON solto. */
+/** Tenta ler um JSON mesmo torto: cerca de codigo, virgula sobrando, aspas curvas,
+    chave nao fechada no fim. Devolve o objeto ou null. */
+function lerJSON(bruto){
+  let t=String(bruto||'').trim();
+  if(!t) return null;
+  t=t.replace(/^```(?:json)?/i,'').replace(/```$/,'').trim();
+  const tentativas=[t];
+  const i=t.indexOf('{');
+  if(i>=0){
+    let n=0, fim=-1;
+    for(let k=i;k<t.length;k++){ const c=t[k];
+      if(c==='{') n++; else if(c==='}'){ n--; if(!n) fim=k; } }
+    if(fim>i) tentativas.push(t.slice(i,fim+1));
+    if(n>0) tentativas.push(t.slice(i)+'}'.repeat(n));
+  }
+  const limpezas=[
+    x=>x,
+    x=>x.replace(/,\s*([}\]])/g,'$1'),
+    x=>x.replace(/[\u201c\u201d]/g,'"').replace(/[\u2018\u2019]/g,"'").replace(/,\s*([}\]])/g,'$1')
+  ];
+  for(const c of tentativas){
+    for(const limpar of limpezas){
+      try{ const ob=JSON.parse(limpar(c)); if(ob && typeof ob==='object') return ob; }catch(e){}
+    }
+  }
+  return null;
+}
 function separar(bruto){
-  let txt=String(bruto||''), efeitos={};
-  const m=txt.match(/<<<([\s\S]*?)>>>/);
+  let txt=String(bruto||''), efeitos=null, motivo='';
+  const m=txt.match(/<<<([\s\S]*?)>>>/) || txt.match(/<<<([\s\S]*)$/);
   if(m){
     txt=txt.slice(0,m.index);
-    try{ efeitos=JSON.parse(m[1]); }catch(e){}
+    efeitos=lerJSON(m[1]);
+    if(!efeitos) motivo='json-invalido';
   } else {
-    const j=txt.match(/\{[\s\S]*\}\s*$/);
-    if(j){ try{ const o=JSON.parse(j[0]);
-      if(o.narracao!==undefined){ txt=o.narracao; efeitos=o; }
-      else { txt=txt.slice(0,j.index); efeitos=o; }
-    }catch(e){} }
+    /* alguns modelos embrulham o bloco numa cerca de codigo markdown */
+    const cerca=txt.match(/```(?:json)?\s*([\s\S]*?)```\s*$/i);
+    const j = cerca ? {0:cerca[1], index:cerca.index} : txt.match(/\{[\s\S]*\}\s*$/);
+    if(j){
+      const ob=lerJSON(j[0]);
+      if(ob){
+        if(ob.narracao!==undefined) txt=ob.narracao; else txt=txt.slice(0,j.index);
+        efeitos=ob;
+      } else motivo='json-invalido';
+    } else motivo='sem-bloco';
   }
-  efeitos.narracao=txt.replace(/<<<[\s\S]*$/,'').trim();
-  return efeitos;
+  const fora=efeitos||{};
+  fora.narracao=txt.replace(/<<<[\s\S]*$/,'').trim();
+  if(motivo){ fora._falha=motivo; fora._bruto=String(bruto||'').slice(-450); }
+  return fora;
 }
 /** Só a parte visível enquanto o texto ainda está chegando. */
 const parcial = t => String(t).split('<<<')[0].replace(/\{[\s\S]*$/,'');
@@ -2545,7 +2580,7 @@ async function umaChamada(msgs, aoVivo, jaEscrito, cfgAlt, semStream){
   const c=cfgAlt||api();
   /* o pedido de reparo é curto e não precisa aparecer letra a letra */
   const querStream = !semStream && localStorage.getItem(PREFIX+':stream')!=='0';
-  const body={model:c.model, messages:msgs, temperature:0.95, max_tokens:c.tam, stream:querStream};
+  const body={model:c.model, messages:msgs, temperature:(c.temp!==undefined?c.temp:0.95), max_tokens:c.tam, stream:querStream};
   /* sem isto, em streaming o provedor não manda a contagem e o medidor teria de chutar */
   if(querStream) body.stream_options={include_usage:true};
   const h={'Content-Type':'application/json'};
@@ -2752,7 +2787,8 @@ async function chamarIA(acao, aoVivo){
 
   /* O modelo escreveu a cena mas engoliu o bloco? Pede só o bloco, num pedido curto
      e barato (sem as regras inteiras). Antes disso a cena era perdida em silêncio. */
-  const vazio = Object.keys(out).filter(k=>k!=='narracao').length===0;
+  const vazio = Object.keys(out).filter(k=>k!=='narracao'&&k!=='_falha'&&k!=='_bruto').length===0;
+  if(out._falha) logErro('bloco-'+out._falha, out._bruto||'');
   if(vazio && texto.trim()){
     try{
       const reparo = await umaChamada([
@@ -2765,13 +2801,13 @@ async function chamarIA(acao, aoVivo){
           'estado certo. Se ele ganhou uma capacidade nova, use "habilidade_nova". Se virou outra '+
           'coisa por dentro, use "titulo" ou "classe". Nunca invente o que a cena não contou.'},
         {role:'user',content:'CENA:\n'+texto.slice(-6000)}
-      ], null, '', null, true);
+      ], null, '', Object.assign({}, c, {tam:1500, temp:0.1}), true);
       const r2=separar(reparo.texto||'');
-      delete r2.narracao;
+      delete r2.narracao; delete r2._falha; delete r2._bruto;
       if(Object.keys(r2).length){
         out=Object.assign(r2,{narracao:out.narracao});
         out.reparado=true;
-      } else out.semBloco=true;
+      } else { out.semBloco=true; logErro('reparo-vazio', (reparo.texto||'').slice(-180)); }
     }catch(e){ logErro('reparo', e.message); out.semBloco=true; }
   }
 
@@ -2782,7 +2818,20 @@ async function chamarIA(acao, aoVivo){
 /* ==========================================================
    APLICAR RESULTADO
    ========================================================== */
+/** Casca de proteção: nada que aconteça aqui dentro pode travar o jogo. */
 function aplicar(res){
+  try{ return aplicarEfeitos(res); }
+  catch(e){
+    logErro('aplicar', (e&&e.message)||String(e));
+    try{
+      sys('bad2','⚠  Erro ao registrar a cena',
+        [['Detalhe', esc(String((e&&e.message)||e)).slice(0,70), 'bad']],
+        'A narração está salva, mas parte dos números pode não ter entrado. O detalhe ficou em ⚙️ Ajustes › registro de erros.');
+      Save.gravar(); atualizarTopo();
+    }catch(x){}
+  }
+}
+function aplicarEfeitos(res){
   const d=Save.d, av=[];
   if(res.local && String(res.local).trim()){
     d.local=String(res.local).trim().slice(0,60);
@@ -2980,6 +3029,11 @@ function aplicar(res){
       [['Título',esc(d.missao.titulo)],['Recompensa',esc(d.missao.recompensa),'ok']]);
     d.feitas.push(d.missao.titulo); d.missao=null;
   }
+
+  /* Daqui até o fechamento é tudo opcional (casa, domínio, oficina, dom, relíquia,
+     criatura). Se a IA mandar um dado estranho e algo estourar, o jogo NÃO pode
+     perder a experiência, o nível e o resumo da cena — que vêm logo depois. */
+  try{
 
   /* ---- harmonia da casa ---- */
   if(res.harmonia!==undefined && res.harmonia!==''){
@@ -3245,6 +3299,11 @@ function aplicar(res){
   if(res.memoria && String(res.memoria).trim()) d.memorias.push(String(res.memoria).trim().slice(0,160));
 
   // nível
+  }catch(e){
+    logErro('efeitos', (e&&e.message)||String(e));
+    av.push(['Atenção','parte dos efeitos não entrou — veja ⚙️ Ajustes › registro de erros','bad']);
+  }
+
   while(d.xp>=d.xpProx){
     d.xp-=d.xpProx; d.nivel++; d.xpProx=Math.round(d.xpProx*1.6);
     d.hpMax+=10; d.hp=d.hpMax;
@@ -3388,7 +3447,9 @@ async function jogar(txt, opts){
   if(res.semBloco) bloco('sis','⚠️ <b>Esta cena não registrou nada.</b> A IA não mandou o bloco de '+
     'efeitos e a tentativa de recuperar também falhou: experiência, ferimentos, itens, criaturas e '+
     'habilidades desta cena foram perdidos. Se isso repetir, troque de modelo em ⚙️ Ajustes — alguns '+
-    'ignoram instruções de formato quando a narração fica muito longa.',false);
+    'ignoram instruções de formato quando a narração fica muito longa. '+
+    '<b>Abra ⚙️ Ajustes e role até o fim</b>: o registro de erros guardou o final exato da '+
+    'resposta, e ele diz se a IA esqueceu o bloco ou se mandou um bloco quebrado.',false);
   if(res.redeCaiu) bloco('sis','📶 A conexão caiu no meio da cena — salvei o trecho que chegou. '+
     'Toque em <b>▶ Continuar</b> aqui embaixo para a IA terminar de onde parou.',false);
 
@@ -4280,5 +4341,5 @@ atualizarMotor();
 barraCena(false);
 if(!temIA()) avisoSemChave();
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a426feafeadbb707',t:'MTc5MDY0MzAzOA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a4272d338c73d7b2',t:'MTc5MDY0NDk0Mw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
